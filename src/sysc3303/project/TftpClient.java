@@ -10,7 +10,7 @@ import java.net.SocketException;
  * @author korey
  *
  */
-public class Client {
+public class TftpClient {
 	protected DatagramSocket socket;
 	protected int serverPort = 68;
 	protected Request.Mode defaultTransferMode = Request.Mode.ASCII;
@@ -20,7 +20,7 @@ public class Client {
 	 */
 	public static void main(String[] args)
 	{
-		Client c = new Client();
+		TftpClient c = new TftpClient();
 		c.connect();
 
 		// Test
@@ -36,7 +36,7 @@ public class Client {
 		c.write("myfile.txt");
 	}
 
-	public Client()
+	public TftpClient()
 	{}
 	
 	public void connect()

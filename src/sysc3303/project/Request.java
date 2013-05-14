@@ -14,7 +14,7 @@ public class Request {
 	protected class InvalidRequestException extends UnsupportedOperationException
 	{
 		private static final long serialVersionUID = -2772971165154877098L;
-	}	
+	}
 
 	public Request(String filename, Action action, Mode mode)
 	{

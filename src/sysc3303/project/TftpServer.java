@@ -11,7 +11,7 @@ import java.net.UnknownHostException;
  * @author korey
  *
  */
-public class Server {
+public class TftpServer {
 	protected DatagramSocket receiveSocket;
 	protected int port = 69;
 	protected boolean isConnected = false;
@@ -21,13 +21,13 @@ public class Server {
 	 */
 	public static void main(String[] args)
 	{
-		new Server().run();
+		new TftpServer().run();
 	}
 
 	/**
 	 * Constructor
 	 */
-	public Server()
+	public TftpServer()
 	{}
 	
 	/**

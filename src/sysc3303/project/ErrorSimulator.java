@@ -1,5 +1,6 @@
 package sysc3303.project;
 
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -14,7 +15,7 @@ import java.net.UnknownHostException;
  * @author korey
  *
  */
-public class Proxy {
+public class ErrorSimulator {
 	protected int proxyPort = 68;
 	protected int serverPort = 69;
 	protected DatagramSocket receiveSocket, sendReceiveSocket;
@@ -26,13 +27,13 @@ public class Proxy {
 	 */
 	public static void main(String[] args)
 	{
-		new Proxy().run();
+		new ErrorSimulator().run();
 	}
 
 	/**
 	 * Constructor
 	 */
-	public Proxy()
+	public ErrorSimulator()
 	{}
 	
 	/**
