@@ -1,4 +1,4 @@
-package sysc3303.project;
+package sysc3303.tftp_project;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -11,7 +11,7 @@ import java.net.UnknownHostException;
  * @author korey
  *
  */
-public class TftpServer {
+public class Server {
 	protected DatagramSocket receiveSocket;
 	protected int port = 69;
 	protected boolean isConnected = false;
@@ -21,13 +21,13 @@ public class TftpServer {
 	 */
 	public static void main(String[] args)
 	{
-		new TftpServer().run();
+		new Server().run();
 	}
 
 	/**
 	 * Constructor
 	 */
-	public TftpServer()
+	public Server()
 	{}
 	
 	/**
@@ -86,7 +86,7 @@ public class TftpServer {
 	{
 		try {
 			// Re-create the request
-			Request rq = new Request(receivedPacket.getData(), receivedPacket.getLength());
+			RequestPacket rq = new RequestPacket(receivedPacket.getData(), receivedPacket.getLength());
 			
 			// Log received packet to terminal
 			String packetStr = (rq.isValid()) ? rq.generatePacketString() : new String(receivedPacket.getData());
@@ -98,9 +98,9 @@ public class TftpServer {
 			byte data[];
 			
 			// Formulate the response data
-			if (rq.isValid && rq.action == Request.Action.READ) {
+			if (rq.isValid && rq.action == RequestPacket.Action.READ) {
 				data = new byte[] {0, 3, 0, 1};
-			} else if (rq.isValid && rq.action == Request.Action.WRITE) {
+			} else if (rq.isValid && rq.action == RequestPacket.Action.WRITE) {
 				data = new byte[] {0, 4, 0, 0};				
 			} else {
 				data = new byte[] {0, 5};

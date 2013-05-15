@@ -1,4 +1,4 @@
-package sysc3303.project;
+package sysc3303.tftp_project;
 
 
 import java.io.IOException;
@@ -84,7 +84,7 @@ public class ErrorSimulator {
 			
 			System.out.println("Proxy forwarding request from " + clientAddress + ":" + clientPort);
 			System.out.println("Request bytes: " + dp.getData());
-			System.out.println("Request string: " + new Request(dp.getData(), dp.getLength()).generatePacketString());
+			System.out.println("Request string: " + new RequestPacket(dp.getData(), dp.getLength()).generatePacketString());
 			System.out.println();
 			
 			// Forward packet to server

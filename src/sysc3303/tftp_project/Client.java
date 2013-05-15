@@ -1,4 +1,4 @@
-package sysc3303.project;
+package sysc3303.tftp_project;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -10,17 +10,17 @@ import java.net.SocketException;
  * @author korey
  *
  */
-public class TftpClient {
+public class Client {
 	protected DatagramSocket socket;
 	protected int serverPort = 68;
-	protected Request.Mode defaultTransferMode = Request.Mode.ASCII;
+	protected RequestPacket.Mode defaultTransferMode = RequestPacket.Mode.OCTET;
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args)
 	{
-		TftpClient c = new TftpClient();
+		Client c = new Client();
 		c.connect();
 
 		// Test
@@ -36,7 +36,7 @@ public class TftpClient {
 		c.write("myfile.txt");
 	}
 
-	public TftpClient()
+	public Client()
 	{}
 	
 	public void connect()
@@ -55,20 +55,20 @@ public class TftpClient {
 	
 	public void read(String filename)
 	{
-		sendRequest(new Request(filename, Request.Action.READ, defaultTransferMode));
+		sendRequest(new RequestPacket(filename, RequestPacket.Action.READ, defaultTransferMode));
 	}
 	
 	public void write(String filename)
 	{
-		sendRequest(new Request(filename, Request.Action.WRITE, defaultTransferMode));
+		sendRequest(new RequestPacket(filename, RequestPacket.Action.WRITE, defaultTransferMode));
 	}
 
 	public void sendInvalidRequest(String filename)
 	{
-		sendRequest(new Request(filename, Request.Action.INVALID, defaultTransferMode));
+		sendRequest(new RequestPacket(filename, RequestPacket.Action.INVALID, defaultTransferMode));
 	}
 
-	public void sendRequest(Request rq)
+	public void sendRequest(RequestPacket rq)
 	{
 		try {
 			if ( null == rq.mode ) {

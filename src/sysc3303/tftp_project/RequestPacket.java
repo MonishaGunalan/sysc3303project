@@ -1,9 +1,9 @@
-package sysc3303.project;
+package sysc3303.tftp_project;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-public class Request {
+public class RequestPacket implements Packet {
 	public String filename = "";
 	public Action action;
 	public Mode mode;
@@ -11,28 +11,23 @@ public class Request {
 	public enum Action {READ, WRITE, INVALID}
 	public enum Mode {ASCII, OCTET}
 		
-	protected class InvalidRequestException extends UnsupportedOperationException
-	{
-		private static final long serialVersionUID = -2772971165154877098L;
-	}
-
-	public Request(String filename, Action action, Mode mode)
+	public RequestPacket(String filename, Action action, Mode mode)
 	{
 		this.filename = filename;
 		this.action = action;
 		this.mode = mode;
 	}
 	
-	public Request(byte[] packetData, int dataLength)
+	public RequestPacket(byte[] packetData, int dataLength)
 	{
 		// Assume valid until we find an error
 		isValid = true;
 		
 		// Get the action (read/write)
 		if (packetData[0] == 0 && packetData[1] == 1) {
-			action = Request.Action.READ;
+			action = RequestPacket.Action.READ;
 		} else if (packetData[0] == 0 && packetData[1] == 2) {
-			action = Request.Action.WRITE;
+			action = RequestPacket.Action.WRITE;
 		} else {
 			isValid = false;
 		}
@@ -73,6 +68,10 @@ public class Request {
 	/*
 	 * Validate the request
 	 */
+	/* (non-Javadoc)
+	 * @see sysc3303.project.Packet#isValid()
+	 */
+	@Override
 	public boolean isValid()
 	{
 		if (!isValid) return false;
@@ -85,6 +84,10 @@ public class Request {
 	/*
 	 * Generate the packet data
 	 */
+	/* (non-Javadoc)
+	 * @see sysc3303.project.Packet#generatePacketData()
+	 */
+	@Override
 	public byte[] generatePacketData()
 	{
 		try {
@@ -106,7 +109,7 @@ public class Request {
 				stream.write(3); // undefined request
 				break;
 			default:
-				throw new InvalidRequestException();
+				throw new InvalidPacketException();
 			}
 			
 			// Add the filename
@@ -136,6 +139,10 @@ public class Request {
 	/*
 	 * Convert the request into a visual packet string (for debugging/logging only)
 	 */
+	/* (non-Javadoc)
+	 * @see sysc3303.project.Packet#generatePacketString()
+	 */
+	@Override
 	public String generatePacketString()
 	{
 		try {
