@@ -1,32 +1,87 @@
 package sysc3303.tftp_project;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Scanner;
 
 /**
- * @author korey
- * 
+ * @author Korey Conway (100838924)
+ * @author Monisha
+ * @author Arzaan
  */
 public class Server {
 	protected boolean stopping = false;
+	protected static final int listenPort = 6900;
+	protected String publicFolder = System.getProperty("user.dir") + "/server_files/";
+
+	/**
+	 * Constructor
+	 */
+	public Server() {
+		new RequestListenerThread(listenPort).start();
+	}
+
+	/**
+	 * Main program
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		Server server = new Server();
+		Scanner scanner = new Scanner(System.in);
+
+		while (true) {
+			System.out.print("Command: ");
+			String command = scanner.nextLine();
+
+			// Continue if blank line was passed
+			if (command.length() == 0) {
+				continue;
+			}
+
+			if (command.equals("help")) {
+				System.out.println("Available commands:");
+				System.out.println("    help: prints this help menu");
+				System.out
+						.println("    stop: stop the server (when current transfers finish)");
+			} else if (command.equals("stop")) {
+				System.out
+						.println("Stopping server (when current transfers finish)");
+				server.stop();
+			} else if (command.equals("pwd")) {
+				System.out.println("Current shared directory: " + server.getPublicFolder());
+			} else {
+				System.out
+						.println("Invalid command. These are the available commands:");
+				System.out.println("    help: prints this help menu");
+				System.out
+						.println("    stop: stop the server (when current transfers finish)");
+			}
+		}
+	}
+
+	public void stop() {
+		stopping = true;
+	}
+	
+	public String getPublicFolder() {
+		return publicFolder;
+	}
 
 	protected class RequestListenerThread extends Thread {
 		protected DatagramSocket socket;
-		protected static final int defaultPort = 6900;
 		protected static final int maxPacketSize = 100;
 
-		public RequestListenerThread(InetAddress boundAddress, int boundPort) {
+		public RequestListenerThread(int boundPort) {
 			try {
-				socket = new DatagramSocket(boundPort, boundAddress);
+				socket = new DatagramSocket(boundPort);
 			} catch (SocketException e) {
-				System.out.printf("Failed to bind to %s:%i%n",
-						boundAddress.getHostAddress(), boundPort);
-				System.out.println("Terminating");
+				System.out.printf("Failed to bind to port %i%n", boundPort);
 				System.exit(1);
 			}
 		}
@@ -41,7 +96,10 @@ public class Server {
 					Packet packet = Packet.CreateFromBytes(dp.getData(),
 							dp.getLength());
 					if (packet instanceof RequestPacket) {
-
+						TransferThread tt = new TransferThread(
+								(RequestPacket) packet, dp.getAddress(),
+								dp.getPort());
+						tt.start();
 					} else {
 						// we received an invalid packet, so ignore it
 					}
@@ -50,115 +108,93 @@ public class Server {
 					e.printStackTrace();
 				}
 			}
+			System.out.println("RequestListenerThread has stopped.");
 		}
 	}
 
-	/**
-	 * Constructor
-	 */
-	public Server() {
-	}
+	protected class TransferThread extends Thread {
+		protected DatagramSocket socket;
+		protected String filename;
+		protected boolean isReadRequest;
+		protected int toPort;
+		protected InetAddress toAddress;
+		protected static final int maxDataSize = 512;
+		protected static final int maxPacketSize = 516;
 
-	/**
-	 * Main program
-	 * 
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		try {
-			Server server = new Server();
-			server.start(InetAddress.getLocalHost(), defaultPort);
-			Scanner scanner = new Scanner(System.in);
-
-			while (true) {
-				System.out.print("Command: ");
-				String command = scanner.nextLine();
-
-				// Continue if blank line was passed
-				if (command.length() == 0) {
-					continue;
-				}
-
-				if (command.equals("help")) {
-					System.out.println("Available commands:");
-					System.out.println("    help: prints this help menu");
-					System.out
-							.println("    stop: stop the server (when current transfers finish)");
-				} else if (command.equals("stop")) {
-					System.out
-							.println("Stopping server (when current transfers finish)");
-					server.stop();
-				} else {
-					System.out
-							.println("Invalid command. These are the available commands:");
-					System.out.println("    help: prints this help menu");
-					System.out
-							.println("    stop: stop the server (when current transfers finish)");
-				}
+		public TransferThread(RequestPacket packet, InetAddress toAddress,
+				int toPort) {
+			try {
+				socket = new DatagramSocket();
+				this.filename = publicFolder + packet.getFilename();
+				this.isReadRequest = packet.isReadRequest();
+				this.toAddress = toAddress;
+				this.toPort = toPort;
+				this.start();
+			} catch (SocketException e) {
+				System.out.println("Failed to open socket for transfer for "
+						+ filename);
 			}
-
-		} catch (UnknownHostException e) {
-			System.out.println("Failed to connect");
 		}
-	}
 
-	public void stop() {
-		stopping = true;
-	}
-
-	/**
-	 * Bind to the server port and IP address
-	 */
-	public void start(InetAddress address, int port) {
-		try {
-			receiveSocket = new DatagramSocket(port, address);
-			System.out.printf("Bound on %s:%s%n", address.getHostAddress(),
-					port);
-		} catch (SocketException e) {
-			e.printStackTrace();
+		@Override
+		public void run() {
+			if (isReadRequest) {
+				this.runReadRequest();
+			} else {
+				this.runWriteRequest();
+			}
 		}
-	}
 
-	/**
-	 * Receive a packet
-	 */
-	public void receive() {
-		// try {
-		// byte[] data = new byte[100];
-		// DatagramPacket receivePacket = new DatagramPacket(data, data.length);
-		// receiveSocket.receive(receivePacket);
-		// respond(receivePacket);
-		// } catch (IOException e) {
-		// e.printStackTrace();
-		// }
-	}
+		public void runReadRequest() {
+			try {
+				FileInputStream fs = new FileInputStream(filename);
+				byte[] data = new byte[maxDataSize];
+				int blockNumber = 1;
+				boolean isLastDataPacket = false;
+				InetAddress toAddress = this.toAddress;
+				Packet pk;
 
-	/**
-	 * Respond to a received packet
-	 * 
-	 * @param receivedPacket
-	 */
-	protected void respond(DatagramPacket receivedPacket) {
-		// try {
-		// } catch (SocketException e) {
-		// e.printStackTrace();
-		// } catch (IOException e) {
-		// e.printStackTrace();
-		// }
-	}
+				while (!isLastDataPacket) {
+					// Read file in 512 byte chuncks
+					int bytesRead = fs.read(data, (blockNumber-1)*maxDataSize, maxDataSize);
+					isLastDataPacket = (bytesRead == maxDataSize);
 
-	/**
-	 * Disconnect sockets
-	 */
-	public void disconnect() {
-		receiveSocket.close();
-		System.out.println("Disconnected");
-	}
+					if (bytesRead == -1) {
+						// Special case when file size is multiple of 512 bytes
+						bytesRead = 0;
+					}
 
-	/**
-	 * Destructor, disconnects from sockets
-	 */
-	public void finalize() {
-		disconnect();
+					// Send data packet
+					System.out.printf("Sending block %i of %s%n", blockNumber, filename);
+					DatagramPacket dp = Packet.CreateDataPacket(blockNumber,
+							data, bytesRead)
+							.generateDatagram(toAddress, toPort);
+					socket.send(dp);
+
+					// Wait until we receive correct ack packet
+					data = new byte[maxPacketSize];
+					dp = new DatagramPacket(data, data.length);
+					do {
+						socket.receive(dp);
+						pk = Packet.CreateFromBytes(data, dp.getLength());
+					} while (pk.getType() != Packet.Type.ACK
+							|| ((AckPacket) pk).getBlockNumber() != blockNumber);
+					System.out.printf("Received ack for block %i%n", blockNumber);
+					blockNumber++;
+				}
+				fs.close();
+			} catch (FileNotFoundException e) {
+				System.out.println("File not found: " + filename);
+				return;
+			} catch (IOException e) {
+				System.out.println("IOException with file:" + filename);
+				e.printStackTrace();
+				return;
+			}
+		}
+
+		public void runWriteRequest() {
+
+		}
 	}
 }

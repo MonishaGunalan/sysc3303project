@@ -60,10 +60,21 @@ public class RequestPacket extends Packet {
 		return new RequestPacket(Action.WRITE, filename, Mode.OCTET);
 	}
 
+	public String getFilename() {
+		return filename;
+	}
+
+	public boolean isReadRequest() {
+		return (action == Action.READ);
+	}
+
 	/**
 	 * Generate a RequestPacket from the given byte array
-	 * @param data byte array data received over the network
-	 * @param dataLength length of the data from the packet received
+	 * 
+	 * @param data
+	 *            byte array data received over the network
+	 * @param dataLength
+	 *            length of the data from the packet received
 	 * @return
 	 * @throws InvalidPacketException
 	 */
@@ -117,7 +128,7 @@ public class RequestPacket extends Packet {
 		}
 
 		// Check for the terminating 0 and make sure there is no more data
-		if (data[i] != 0 || i != (dataLength-1)) {
+		if (data[i] != 0 || i != (dataLength - 1)) {
 			// TODO verify that end of data detection actually works
 			throw new InvalidPacketException();
 		}

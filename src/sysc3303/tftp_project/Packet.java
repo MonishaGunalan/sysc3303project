@@ -6,7 +6,7 @@ import java.net.InetAddress;
 /**
  * @author Korey Conway (100838924)
  * @author Monisha
- * @author Azraan
+ * @author Arzaan
  */
 public abstract class Packet {
 	protected Type type;
@@ -27,12 +27,17 @@ public abstract class Packet {
 		// TODO
 	}
 
-	static void CreateDataPacket() {
-		// TODO
+	static DataPacket CreateDataPacket(int blockNumber, byte[] data,
+			int dataLength) {
+		return new DataPacket(blockNumber, data, dataLength);
 	}
 
 	static void CreateErrorPacket() {
 		// TODO
+	}
+
+	public Type getType() {
+		return type;
 	}
 
 	/**
