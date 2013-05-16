@@ -23,8 +23,8 @@ public abstract class Packet {
 		// TODO
 	}
 
-	static void CreateAckPacket() {
-		// TODO
+	static AckPacket CreateAckPacket(int blockNumber) {
+		return new AckPacket(blockNumber);
 	}
 
 	static DataPacket CreateDataPacket(int blockNumber, byte[] data,

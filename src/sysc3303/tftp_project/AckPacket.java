@@ -38,7 +38,7 @@ public class AckPacket extends Packet {
 				throw new InvalidPacketException();
 			}
 
-			int blockNumber = (data[2] >> 8) + data[3];
+			int blockNumber = (data[2] << 8) + data[3];
 			return new AckPacket(blockNumber);
 		} catch ( Exception e ) {
 			throw new InvalidPacketException();

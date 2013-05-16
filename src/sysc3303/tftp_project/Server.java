@@ -2,6 +2,7 @@ package sysc3303.tftp_project;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -17,7 +18,8 @@ import java.util.Scanner;
 public class Server {
 	protected boolean stopping = false;
 	protected static final int listenPort = 6900;
-	protected String publicFolder = System.getProperty("user.dir") + "/server_files/";
+	protected String publicFolder = System.getProperty("user.dir")
+			+ "/server_files/";
 
 	/**
 	 * Constructor
@@ -54,7 +56,8 @@ public class Server {
 						.println("Stopping server (when current transfers finish)");
 				server.stop();
 			} else if (command.equals("pwd")) {
-				System.out.println("Current shared directory: " + server.getPublicFolder());
+				System.out.println("Current shared directory: "
+						+ server.getPublicFolder());
 			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
@@ -68,7 +71,7 @@ public class Server {
 	public void stop() {
 		stopping = true;
 	}
-	
+
 	public String getPublicFolder() {
 		return publicFolder;
 	}
@@ -156,7 +159,8 @@ public class Server {
 
 				while (!isLastDataPacket) {
 					// Read file in 512 byte chuncks
-					int bytesRead = fs.read(data, (blockNumber-1)*maxDataSize, maxDataSize);
+					int bytesRead = fs.read(data, (blockNumber - 1)
+							* maxDataSize, maxDataSize);
 					isLastDataPacket = (bytesRead == maxDataSize);
 
 					if (bytesRead == -1) {
@@ -165,7 +169,8 @@ public class Server {
 					}
 
 					// Send data packet
-					System.out.printf("Sending block %i of %s%n", blockNumber, filename);
+					System.out.printf("Sending block %i of %s%n", blockNumber,
+							filename);
 					DatagramPacket dp = Packet.CreateDataPacket(blockNumber,
 							data, bytesRead)
 							.generateDatagram(toAddress, toPort);
@@ -179,7 +184,12 @@ public class Server {
 						pk = Packet.CreateFromBytes(data, dp.getLength());
 					} while (pk.getType() != Packet.Type.ACK
 							|| ((AckPacket) pk).getBlockNumber() != blockNumber);
-					System.out.printf("Received ack for block %i%n", blockNumber);
+					toAddress = dp.getAddress(); // This updates in case the
+													// client is using dynamic
+													// IP (not likely needed,
+													// but good extra feature)
+					System.out.printf("Received ack for block %i%n",
+							blockNumber);
 					blockNumber++;
 				}
 				fs.close();
@@ -187,14 +197,63 @@ public class Server {
 				System.out.println("File not found: " + filename);
 				return;
 			} catch (IOException e) {
-				System.out.println("IOException with file:" + filename);
+				System.out.println("IOException with file: " + filename);
 				e.printStackTrace();
 				return;
 			}
 		}
 
 		public void runWriteRequest() {
+			try {
+				FileOutputStream fs;
+				fs = new FileOutputStream(filename);
+				int blockNumber = 0;
+				boolean isLastDataPacket = false;
+				InetAddress toAddress = this.toAddress;
+				Packet pk;
+				DataPacket dataPk;
 
+				while (true) {
+					// Send ack packet
+					DatagramPacket dp = Packet.CreateAckPacket(blockNumber)
+							.generateDatagram(toAddress, toPort);
+					socket.send(dp);
+					
+					if (isLastDataPacket) {
+						break;
+					}
+
+					// Increment blockNumber
+					blockNumber++;
+
+					// Receive data packet
+					do {
+						dp = new DatagramPacket(new byte[maxPacketSize],
+								maxPacketSize);
+						socket.receive(dp);
+						pk = Packet.CreateFromBytes(dp.getData(),
+								dp.getLength());
+						
+					} while (pk.getType() != Packet.Type.DATA
+							|| ((DataPacket)pk).getBlockNumber() != blockNumber);
+
+					// Save into file
+					dataPk = (DataPacket)pk;
+					fs.write(dataPk.getData(), ((blockNumber-1)*maxPacketSize), dataPk.getDataLength());
+					
+					if (dataPk.getDataLength() != maxPacketSize) {
+						isLastDataPacket = true;
+					}
+				}
+				fs.close();
+			} catch (FileNotFoundException e) {
+				System.out.println("Cannot write to: " + filename);
+				return;
+			} catch (IOException e) {
+				System.out.println("IOException with file: " + filename);
+				e.printStackTrace();
+				return;
+			}
 		}
 	}
 }
