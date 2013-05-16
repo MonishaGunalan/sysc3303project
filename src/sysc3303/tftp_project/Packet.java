@@ -3,9 +3,13 @@ package sysc3303.tftp_project;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
+/**
+ * @author Korey Conway (100838924)
+ * @author Monisha
+ * @author Azraan
+ */
 public abstract class Packet {
 	protected Type type;
-	protected boolean isValid = true;
 
 	public enum Type {
 		RRQ, WRQ, DATA, ACK, ERROR
@@ -31,27 +35,33 @@ public abstract class Packet {
 		// TODO
 	}
 
-	static Packet CreateFromBytes(byte[] data) throws InvalidPacketException {
-		// TODO
+	/**
+	 * @param data
+	 * @param dataLength
+	 * @return
+	 * @throws InvalidPacketException
+	 */
+	static Packet CreateFromBytes(byte[] data, int dataLength)
+			throws InvalidPacketException {
+
 		if (data[0] != 0) {
 			throw new InvalidPacketException();
 		}
 
 		switch (data[1]) {
 		case 1:
-			break;
+			return RequestPacket.CreateFromBytes(data, dataLength);
 		case 2:
-			break;
+			return RequestPacket.CreateFromBytes(data, dataLength);
 		case 3:
-			break;
+			return AckPacket.CreateFromBytes(data, dataLength);
 		case 4:
-			break;
+			return DataPacket.CreateFromBytes(data, dataLength);
 		case 5:
-			break;
+			return DataPacket.CreateFromBytes(data, dataLength);
 		default:
 			throw new InvalidPacketException();
 		}
-		return null;
 	}
 
 	/**
@@ -65,15 +75,6 @@ public abstract class Packet {
 		byte data[] = this.generateData();
 		return new DatagramPacket(data, data.length, destinationAddress,
 				destinationPort);
-	}
-
-	/**
-	 * Check if the packet is valid
-	 * 
-	 * @return return true when the packet is valid, false otherwise
-	 */
-	public boolean isValid() {
-		return isValid;
 	}
 
 	/**
@@ -91,6 +92,13 @@ public abstract class Packet {
 	 * @return a string representation of the packet
 	 * @throws InvalidPacketException
 	 */
-	public abstract String generateString() throws InvalidPacketException;
+	public String generateString() {
+		byte[] packetBytes = this.generateData();
+		StringBuilder packetString = new StringBuilder(4);
+		for (byte b : packetBytes) {
+			packetString.append((int) b);
+		}
+		return packetString.toString();
+	}
 
 }

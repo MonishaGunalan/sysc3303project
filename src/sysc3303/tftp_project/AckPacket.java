@@ -1,91 +1,73 @@
 package sysc3303.tftp_project;
 
 /**
- * @author korey
- *
+ * @author Korey Conway (100838924)
+ * @author Monisha
+ * @author Azraan
  */
-public class AckPacket implements Packet {
+public class AckPacket extends Packet {
 	static final protected int opCode = 3;
 	protected int blockNumber = 0;
-	
-	/**
-	 * Constructor
-	 */
-	AckPacket()
-	{}
-	
-	/**
-	 * Constructor
-	 * @param blockNumber for the packet
-	 */
-	AckPacket(int blockNumber) {
-		this.setBlockNumber(blockNumber);
-	}
 
 	/**
-	 * @return the blockNumber
+	 * Constructor
+	 * 
+	 * @param blockNumber
+	 *            for the packet
 	 * @throws IllegalArgumentException
 	 */
-	public int getBlockNumber() throws IllegalArgumentException {
+	AckPacket(int blockNumber) throws IllegalArgumentException {
 		if (blockNumber < 0) {
 			throw new IllegalArgumentException();
 		}
-		return blockNumber;
-	}
-
-	/**
-	 * @param blockNumber the blockNumber to set
-	 * @throws IllegalArgumentException
-	 */
-	public void setBlockNumber(int blockNumber) throws IllegalArgumentException {
 		this.blockNumber = blockNumber;
-	}
-
-	/**
-	 * Validate the packet
-	 * @return return true when the packet is valid, false otherwise
-	 * @see sysc3303.tftp_project.Packet#isValid()
-	 */
-	@Override
-	public boolean isValid() {
-		// Just need to make sure the blockNumber is non-negative
-		return (blockNumber >= 0);
+		this.type = Type.ACK;
 	}
 
 	/**
 	 * Generate the packet data
+	 * 
+	 * @param data
+	 * @param dataLength
+	 * @return the byte array of the packet
+	 */
+	static AckPacket CreateFromBytes(byte[] data, int dataLength) {
+		try {
+			if (data == null || data.length < 4 || data[0] != 0
+					|| data[1] != opCode) {
+				throw new InvalidPacketException();
+			}
+
+			int blockNumber = (data[2] >> 8) + data[3];
+			return new AckPacket(blockNumber);
+		} catch ( Exception e ) {
+			throw new InvalidPacketException();
+		}
+	}
+
+	/**
+	 * Get the block number
+	 * 
+	 * @return the block number
+	 */
+	public int getBlockNumber() {
+		return blockNumber;
+	}
+
+	/**
+	 * Generate the packet data
+	 * 
 	 * @return the byte array of the packet
 	 * @throws InvalidPacketException
 	 * @see sysc3303.tftp_project.Packet#generatePacketData()
 	 */
 	@Override
-	public byte[] generatePacketData() throws InvalidPacketException {
-		
-		if (!this.isValid()) {
-			throw new InvalidPacketException();
-		}
-		
-		byte[] packetBytes = new byte[4];
-		packetBytes[0] = 0;
-		packetBytes[1] = (byte) opCode;
-		packetBytes[2] = (byte) (blockNumber);
-		packetBytes[3] = (byte) (blockNumber >> 8);
-		return packetBytes;
-	}
-
-	/**
-	 * Convert the request into a visual packet string (for debugging/logging only)
-	 * @return a string representation of the packet
-	 * @throws InvalidPacketException;
-	 * @see sysc3303.tftp_project.Packet#generatePacketString()
-	 */
-	@Override
-	public String generatePacketString() {
-		byte [] packetBytes = this.generatePacketData();
-		StringBuilder packetString = new StringBuilder(4);
-		for (byte b : packetBytes) {
-			packetString.append((int) b);
-		}
-		return packetString.toString();
+	public byte[] generateData() throws InvalidPacketException {
+		byte[] data = new byte[4];
+		data[0] = 0;
+		data[1] = (byte) opCode;
+		data[2] = (byte) (blockNumber);
+		data[3] = (byte) (blockNumber >> 8);
+		return data;
 	}
 }
