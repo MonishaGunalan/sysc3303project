@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 public class DataPacket extends Packet {
 	static final protected int opCode = 4;
 	static final protected int maxDataLength = 512;
+	static final protected int headerLength = 4;
 	protected int blockNumber = 0;
 	protected byte[] data = null;
 	protected int dataLength = 0;
@@ -17,7 +18,8 @@ public class DataPacket extends Packet {
 	 * @param dataLength
 	 */
 	DataPacket(int blockNumber, byte[] data, int dataLength) {
-		if ( blockNumber < 0 || data == null || data.length < 1 || dataLength < 1 ) {
+		if (blockNumber < 0 || data == null || data.length < 1
+				|| dataLength < 1) {
 			throw new IllegalArgumentException();
 		}
 		this.blockNumber = blockNumber;
@@ -26,16 +28,17 @@ public class DataPacket extends Packet {
 		this.type = Type.DATA;
 	}
 
-	public static DataPacket CreateFromBytes(byte[] data, int dataLength) throws InvalidPacketException {
+	public static DataPacket CreateFromBytes(byte[] data, int dataLength)
+			throws InvalidPacketException {
 		// TODO: catch index out of bounds exceptions
-		if ( data[0] != 0 || data[1] != 4 || data[dataLength-1] != 0) {
+		if (data[0] != 0 || data[1] != 4 || data[dataLength - 1] != 0) {
 			throw new InvalidPacketException();
 		}
-		
+
 		// Extract the data portion
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		stream.write(data, 4, dataLength - 3);
-		
+
 		int blockNumber = (data[2] << 8) + data[3];
 		data = stream.toByteArray();
 		return new DataPacket(blockNumber, data, data.length);
@@ -49,11 +52,11 @@ public class DataPacket extends Packet {
 	public byte[] getData() {
 		return data;
 	}
-	
+
 	public int getBlockNumber() {
 		return blockNumber;
 	}
-	
+
 	public int getDataLength() {
 		return dataLength;
 	}
@@ -71,7 +74,13 @@ public class DataPacket extends Packet {
 				|| dataLength > maxDataLength || blockNumber < 0) {
 			throw new IllegalArgumentException();
 		}
-		return null;
+		byte[] gData = new byte[dataLength + headerLength];
+		gData[0] = 0;
+		gData[1] = opCode;
+		gData[2] = (byte) ((short)blockNumber & 0xff);
+		gData[3] = (byte) (((short)blockNumber >> 8) & 0xff);
+		System.arraycopy(gData, headerLength, data, 0, dataLength);
+		return gData;
 	}
 
 	/**

@@ -31,7 +31,7 @@ public class AckPacket extends Packet {
 	 * @param dataLength
 	 * @return the byte array of the packet
 	 */
-	static AckPacket CreateFromBytes(byte[] data, int dataLength) {
+	static AckPacket CreateFromBytes(byte[] data, int dataLength) throws InvalidPacketException {
 		try {
 			if (data == null || data.length < 4 || data[0] != 0
 					|| data[1] != opCode) {
