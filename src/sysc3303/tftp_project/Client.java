@@ -1,6 +1,11 @@
 package sysc3303.tftp_project;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -14,14 +19,16 @@ import java.util.StringTokenizer;
  */
 public class Client {
 	protected DatagramSocket socket;
-	protected int serverPort = 68;
+	protected int serverPort = 6900;
 	protected RequestPacket.Mode defaultTransferMode = RequestPacket.Mode.ASCII;
+	protected String publicFolder = System.getProperty("user.dir")
+			+ "/client_files/";
 
-	private boolean isDone = false;
+	private volatile boolean isDone = false;
 	private String filename;
 
 	private enum CMD {
-		READ, WRITE, STOP
+		READ, WRITE, STOP, INVALID
 	}
 
 	/**
@@ -37,32 +44,66 @@ public class Client {
 		while (!c.isDone) {
 			CMD cmd = c.getInput();
 			switch (cmd) {
-				case READ: {
-					c.read(c.filename);
-					break;
-				}
-				case WRITE: {
-					c.write(c.filename);
-					break;
-				}
-				case STOP: {
-					c.isDone = true;
-					break;
-				}
+			case READ: {
+				/*ReadThread rt = c.new ReadThread(c);
+				rt.start();*/
+				break;
+			}
+			case WRITE: {
+				WriteThread wt = c.new WriteThread(c);
+				wt.start();
+				break;
+			}
+			case STOP: {
+				c.isDone = true;
+				break;
+			}
+			case INVALID: {
+				break;
+			}
 			}
 		}
 
-		// Test
-		c.read("myfile.txt");
-		c.write("myfile.txt");
-		c.read("myfile.txt");
-		c.sendInvalidRequest("myfile.txt");
-		c.read("myfile.txt");
-		c.write("myfile.txt");
-		c.sendInvalidRequest("myfile.txt");
-		c.write("myfile.txt");
-		c.read("myfile.txt");
-		c.write("myfile.txt");
+	}
+	
+
+	public class WriteThread extends Thread {
+		private Client client;
+		private boolean isWriteDone = false;
+
+		public WriteThread(Client client) {
+			this.client = client;
+		}
+
+		@Override
+		public void run() {
+			int blockNumber = 0;
+			byte[] data = null;
+			int port = client.write(filename);
+			try {
+				data = client.toByteArray(new File(client.publicFolder,filename));
+				System.out.println(data.length);
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			while (!isWriteDone) {
+				//Generate data packets to be sent
+				int packetSize = data.length - (blockNumber * DataPacket.maxDataLength);
+				System.out.println(packetSize);
+				if(packetSize > DataPacket.maxDataLength)
+					packetSize = DataPacket.maxDataLength;
+				else
+					isWriteDone = true;
+				byte[] blockData = new byte[packetSize];
+				int offset = blockNumber * DataPacket.maxDataLength;
+				System.arraycopy(data, offset, blockData, 0, blockData.length);
+				client.sendDataPacket(new DataPacket(blockNumber, blockData, blockData.length), port);
+				blockNumber++;
+			}
+		}
+
 	}
 
 	public CMD getInput() {
@@ -70,35 +111,67 @@ public class Client {
 		Scanner in = new Scanner(System.in);
 		System.out.println("Please enter the command: ");
 		String inputCmd;
-		while (in.hasNext()) {
-			inputCmd = in.next();
-			if (inputCmd.equalsIgnoreCase("help")) {
-				System.out.println("List of Terminal Commands");
-				System.out
-						.println("read <filename> : send read request to server. @param <filename>: full path of the file name.");
-				System.out
-						.println("write <filename> : send write request to server. @param <filename>: full path of the file name.");
-				System.out
-						.println("stop : close the client (waits until current transmissions are done");
-			} else if (inputCmd.equalsIgnoreCase("stop")) {
-				cmd = CMD.STOP;
-			} else {
-				StringTokenizer st = new StringTokenizer(inputCmd, " ");
-				if (st.countTokens() == 2) {
-					inputCmd = (String) st.nextElement();
-					filename = (String) st.nextElement();
-					if (inputCmd.equalsIgnoreCase("read")) {
-						cmd = CMD.READ;
-					} else if (inputCmd.equalsIgnoreCase("write")) {
-						cmd = CMD.WRITE;
-					}
-				} else {
-					System.out.println("Invalid command, Please try again");
+		inputCmd = in.nextLine();
+		if (inputCmd.equalsIgnoreCase("help")) {
+			System.out.println("List of Terminal Commands");
+			System.out
+					.println("read <filename> : send read request to server. @param <filename>: full path of the file name.");
+			System.out
+					.println("write <filename> : send write request to server. @param <filename>: full path of the file name.");
+			System.out
+					.println("stop : close the client (waits until current transmissions are done");
+		} else if (inputCmd.equalsIgnoreCase("stop")) {
+			cmd = CMD.STOP;
+		} else {
+			StringTokenizer st = new StringTokenizer(inputCmd);
+			if (st.countTokens() == 2) {
+				inputCmd = (String) st.nextToken();
+				filename = (String) st.nextToken();
+				if (inputCmd.equalsIgnoreCase("read")) {
+					cmd = CMD.READ;
+				} else if (inputCmd.equalsIgnoreCase("write")) {
+					cmd = CMD.WRITE;
 				}
+			} else {
+				System.out.println(st.countTokens());
+				cmd = CMD.INVALID;
+				System.out.println("Invalid command, Please try again");
+			}
 
-			}// end if
-		}// end while
+		}// end if
 		return cmd;
+	}
+
+	public int sendDataPacket(DataPacket packet, int port) {
+		
+		// Log to terminal
+		System.out.println("Client sending (bytes): " + packet.getBlockNumber());
+		try{
+		// Create the packet
+		DatagramPacket dp = packet.generateDatagram(InetAddress.getLocalHost(), port);
+
+		// Send the packet
+		socket.send(dp);
+
+		// Receive response
+		 port = receiveResponse();	
+		}catch(IOException ioe){
+			ioe.printStackTrace();
+		}
+		return port;
+	}
+
+	private byte[] toByteArray(File file) throws FileNotFoundException,
+			IOException {
+		int length = (int) file.length();
+		byte[] array = new byte[length];
+		InputStream in = new FileInputStream(file);
+		int offset = 0;
+		while (offset < length) {
+			offset += in.read(array, offset, (length - offset));
+		}
+		in.close();
+		return array;
 	}
 
 	public void connect() {
@@ -113,27 +186,28 @@ public class Client {
 		socket.disconnect();
 	}
 
-	public void read(String filename) {
-		sendRequest(RequestPacket.CreateReadRequest(filename));
+	public int read(String filename) {
+		return sendRequest(RequestPacket.CreateReadRequest(filename));
 	}
 
-	public void write(String filename) {
-		sendRequest(RequestPacket.CreateWriteRequest(filename));
+	public int write(String filename) {
+		return sendRequest(RequestPacket.CreateWriteRequest(filename));
 	}
 
-	public void sendInvalidRequest(String filename) {
-		sendRequest(new RequestPacket(filename, RequestPacket.Action.INVALID));
-	}
+	// public void sendInvalidRequest(String filename) {
+	// sendRequest(new RequestPacket(filename, RequestPacket.Action.INVALID));
+	// }
 
-	public void sendRequest(RequestPacket rq) {
+	public int sendRequest(RequestPacket rq) {
+		int port = -1;
 		try {
 			if (null == rq.mode) {
 				rq.mode = defaultTransferMode;
 			}
 
 			// Convert the request into a byte array
-			byte data[] = rq.generatePacketData();
-			String dataStr = rq.generatePacketString();
+			byte data[] = rq.generateData();
+			String dataStr = rq.generateString();
 
 			// Log to terminal
 			System.out.println("Client sending (bytes): " + data);
@@ -147,13 +221,15 @@ public class Client {
 			socket.send(dp);
 
 			// Receive response
-			receiveResponse();
+			port = receiveResponse();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return port;
 	}
 
-	protected void receiveResponse() {
+	protected int receiveResponse() {
+		int port = -1;
 		try {
 			byte data[] = new byte[100];
 			DatagramPacket dp = new DatagramPacket(data, data.length);
@@ -167,11 +243,13 @@ public class Client {
 			for (int i = 0; i < dataLength; i++) {
 				System.out.print(data[i]);
 			}
-			System.out.println();
+			port = dp.getPort();
+			AckPacket.CreateFromBytes(data, dataLength);
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return port;
 	}
 
 	public void finalize() {
