@@ -1,6 +1,7 @@
 package sysc3303.tftp_project;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 
 public class DataPacket extends Packet {
 	static final protected int opCode = 4;
@@ -37,7 +38,7 @@ public class DataPacket extends Packet {
 
 		// Extract the data portion
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		stream.write(data, 4, dataLength - 3);
+		stream.write(data, 4, dataLength - 4);
 
 		int blockNumber = (data[2] << 8) + data[3];
 		data = stream.toByteArray();
@@ -77,8 +78,11 @@ public class DataPacket extends Packet {
 		byte[] gData = new byte[dataLength + headerLength];
 		gData[0] = 0;
 		gData[1] = opCode;
-		gData[2] = (byte) ((short)blockNumber & 0xff);
-		gData[3] = (byte) (((short)blockNumber >> 8) & 0xff);
+		ByteBuffer buffer = ByteBuffer.allocate(2);
+		buffer.putShort((short) blockNumber);
+		buffer.flip();
+		gData[2] = buffer.array()[0];
+		gData[3] = buffer.array()[1];
 		System.arraycopy(gData, headerLength, data, 0, dataLength);
 		return gData;
 	}

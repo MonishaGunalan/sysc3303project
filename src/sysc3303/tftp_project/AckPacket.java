@@ -1,5 +1,7 @@
 package sysc3303.tftp_project;
 
+import java.nio.ByteBuffer;
+
 /**
  * @author Korey Conway (100838924)
  * @author Monisha
@@ -66,8 +68,11 @@ public class AckPacket extends Packet {
 		byte[] data = new byte[4];
 		data[0] = 0;
 		data[1] = (byte) opCode;
-		data[2] = (byte) (blockNumber);
-		data[3] = (byte) (blockNumber >> 8);
+		ByteBuffer buffer = ByteBuffer.allocate(2);
+		buffer.putShort((short) blockNumber);
+		buffer.flip();
+		data[2] = buffer.array()[0];
+		data[3] = buffer.array()[1];
 		return data;
 	}
 }

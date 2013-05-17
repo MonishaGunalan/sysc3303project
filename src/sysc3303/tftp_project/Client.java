@@ -15,8 +15,9 @@ import java.util.Scanner;
 import java.util.StringTokenizer;
 
 /**
- * @author Korey
- * 
+ * @author Korey Conway (100838924)
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
  */
 public class Client {
 	protected DatagramSocket socket;
@@ -40,17 +41,15 @@ public class Client {
 
 		boolean isDone = false;
 		// Get the input from the user
-		while (isDone) {
+		while (!isDone) {
 			CMD cmd = c.getInput();
 			switch (cmd) {
 			case READ: {
-				ReadThread rt = c.new ReadThread(c);
-				rt.start();
+				c.readReq();
 				break;
 			}
 			case WRITE: {
-				WriteThread wt = c.new WriteThread(c);
-				wt.start();
+				c.writeReq();
 				break;
 			}
 			case STOP: {
@@ -65,21 +64,14 @@ public class Client {
 
 	}
 
-	public class WriteThread extends Thread {
-		private Client client;
-		private boolean isWriteDone = false;
 
-		public WriteThread(Client client) {
-			this.client = client;
-		}
-
-		@Override
-		public void run() {
+		public void writeReq() {
+			boolean isWriteDone = false;
 			int blockNumber = 0;
 			byte[] data = null;
-			int port = client.write(filename);
+			int port = write(filename);
 			try {
-				data = client.toByteArray(new File(client.publicFolder,
+				data = toByteArray(new File(publicFolder,
 						filename));
 			} catch (FileNotFoundException e1) {
 				e1.printStackTrace();
@@ -87,43 +79,36 @@ public class Client {
 				e1.printStackTrace();
 			}
 			while (!isWriteDone) {
+				blockNumber++;
 				// Generate data packets to be sent
 				int packetSize = data.length
-						- (blockNumber * DataPacket.maxDataLength);
+						- ((blockNumber -1) * DataPacket.maxDataLength);
 				System.out.println(packetSize);
 				if (packetSize > DataPacket.maxDataLength)
 					packetSize = DataPacket.maxDataLength;
 				else
 					isWriteDone = true;
 				byte[] blockData = new byte[packetSize];
-				int offset = blockNumber * DataPacket.maxDataLength;
+				int offset = (blockNumber - 1) * DataPacket.maxDataLength;
 				System.arraycopy(data, offset, blockData, 0, blockData.length);
-				client.sendDataPacket(new DataPacket(blockNumber, blockData,
+				sendDataPacket(new DataPacket(blockNumber, blockData,
 						blockData.length), port);
-				blockNumber++;
 			}
 		}
-	}
+	
 
-	public class ReadThread extends Thread {
-		private Client client;
-		private boolean isReadDone = false;
 
-		public ReadThread(Client client) {
-			this.client = client;
-		}
-
-		@Override
-		public void run() {
-			int blockNumber = 0;
+		public void readReq() {
+			boolean isReadDone = false;
+			int blockNumber = 1;
 			byte[] data = null;
-			int port = client.read(filename);
+			int port = read(filename);
 			FileOutputStream fs = null;
 			try {
 				fs  = new FileOutputStream(new File(
 						publicFolder, filename));
 
-				data = client.toByteArray(new File(client.publicFolder,
+				data = toByteArray(new File(publicFolder,
 						filename));
 			} catch (FileNotFoundException e1) {
 				e1.printStackTrace();
@@ -131,7 +116,7 @@ public class Client {
 				e1.printStackTrace();
 			}
 			while (!isReadDone) {
-				DatagramPacket dp = client.receiveDataPacket(port);
+				DatagramPacket dp = receiveDataPacket(port);
 				data = dp.getData();
 				DataPacket dataPacket = DataPacket.CreateFromBytes(data, data.length);
 				try {
@@ -139,11 +124,20 @@ public class Client {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				if(dataPacket.getDataLength() < DataPacket.maxDataLength){
+					isReadDone = true;
+					try {
+						fs.flush();
+						fs.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
 				//Send Ack
-				client.sendAckPacket(blockNumber++, dp.getPort());
+				sendAckPacket(blockNumber++, dp.getPort());
 			}
 		}
-	}
+	
 
 	public CMD getInput() {
 		CMD cmd = null;
@@ -242,6 +236,7 @@ public class Client {
 			offset += in.read(array, offset, (length - offset));
 		}
 		in.close();
+		System.out.println("read size " + array.length);
 		return array;
 	}
 
