@@ -62,8 +62,6 @@ public class Server {
 			} else if (command.equals("pwd")) {
 				System.out.println("Current shared directory: "
 						+ server.getPublicFolder());
-			} else if (command.equals("test")) {
-				System.out.println(server.getThreadCount());
 			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
