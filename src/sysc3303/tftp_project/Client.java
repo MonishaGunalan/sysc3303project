@@ -18,6 +18,7 @@ import java.util.StringTokenizer;
  * @author Monisha (100871444)
  * @author Arzaan (100826631)
  */
+
 public class Client {
 	protected DatagramSocket socket;
 	protected int serverPort = 6900;
@@ -39,7 +40,7 @@ public class Client {
 		c.connect();
 
 		boolean isDone = false;
-		// Perform functions based on the input from the console
+		// Perform functions based on the input command from the console
 		while (!isDone) {
 			CMD cmd = c.getInput();
 			switch (cmd) {
@@ -64,78 +65,86 @@ public class Client {
 
 	}
 
-		// Create a Write RequestPacket
-		public void writeReq() {
-			boolean isWriteDone = false;
-			int blockNumber = 0;
-			byte[] data = null;
-			write(filename);
-			int port = receiveResponse();
-			try {
-				data = toByteArray(new File(publicFolder,
-						filename));
-			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-			while (!isWriteDone) {
-				
-// Generate data packets to be sent
-				int packetSize = data.length
-						- ((blockNumber) * DataPacket.maxDataLength);
-				System.out.println(packetSize);
-				if (packetSize > DataPacket.maxDataLength)
-					packetSize = DataPacket.maxDataLength;
-				else
-					isWriteDone = true;
-				byte[] blockData = new byte[packetSize];
-				int offset = (blockNumber) * DataPacket.maxDataLength;
-				System.arraycopy(data, offset, blockData, 0, blockData.length);
-				blockNumber++;
-
-				sendDataPacket(new DataPacket(blockNumber, blockData,
-						blockData.length), port);
-			}
+	/*
+	 * Create a Write Request Packet and the send the request packet
+	 * Generate bytes of data from the file into data packets and send the data packet
+	 * Receive the ack packet after every data packet sent.
+	 */
+	public void writeReq() {
+		boolean isWriteDone = false;
+		int blockNumber = 0;
+		byte[] data = null;
+		write(filename);
+		int port = receiveResponse();
+		try {
+			data = toByteArray(new File(publicFolder, filename));
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
-	
+		while (!isWriteDone) {
 
+			// Generate data packets to be sent
+			int packetSize = data.length
+					- ((blockNumber) * DataPacket.maxDataLength);
+			System.out.println(packetSize);
+			if (packetSize > DataPacket.maxDataLength)
+				packetSize = DataPacket.maxDataLength;
+			else
+				isWriteDone = true;
+			byte[] blockData = new byte[packetSize];
+			int offset = (blockNumber) * DataPacket.maxDataLength;
+			System.arraycopy(data, offset, blockData, 0, blockData.length);
+			blockNumber++;
 
-		public void readReq() {
-			boolean isReadDone = false;
-			int blockNumber = 1;
-			byte[] data = null;
-			read(filename);
-			FileOutputStream fs = null;
+			sendDataPacket(new DataPacket(blockNumber, blockData,
+					blockData.length), port);
+		}
+	}
+
+	/*
+	 * Create a Read Request Packet and the send the request packet
+	 * Receive data packets from the server, extract the data.
+	 * Write the extracted data into the file.
+	 * Send ack packet to the server after every data packet received.
+	 */
+	public void readReq() {
+		boolean isReadDone = false;
+		int blockNumber = 1;
+		byte[] data = null;
+		read(filename);
+		FileOutputStream fs = null;
+		try {
+			fs = new FileOutputStream(new File(publicFolder, filename));
+		} catch (FileNotFoundException e1) {
+			e1.printStackTrace();
+		}
+		while (!isReadDone) {
+			DatagramPacket dp = receiveDataPacket();
+			data = dp.getData();
+			DataPacket dataPacket = DataPacket.CreateFromBytes(data,
+					data.length);
 			try {
-				fs  = new FileOutputStream(new File(
-						publicFolder, filename));
-			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
+				fs.write(dataPacket.getData());
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
-			while (!isReadDone) {
-				DatagramPacket dp = receiveDataPacket();
-				data = dp.getData();
-				DataPacket dataPacket = DataPacket.CreateFromBytes(data, data.length);
+			if (dataPacket.getDataLength() < DataPacket.maxDataLength) {
+				isReadDone = true;
 				try {
-					fs.write(dataPacket.getData());
+					fs.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				if(dataPacket.getDataLength() < DataPacket.maxDataLength){
-					isReadDone = true;
-					try {
-						fs.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-				//Send Ack
-				sendAckPacket(blockNumber++, dp.getPort());
 			}
+			// Send Ack 
+			sendAckPacket(blockNumber++, dp.getPort());
 		}
-	
-	/* Get the input command and the file name from the user
+	}
+
+	/*
+	 * Get the input command and the file name from the user
 	 * 
 	 * @return Input Command
 	 */
@@ -175,11 +184,17 @@ public class Client {
 		return cmd;
 	}
 
+	/*
+	 * Create Ack Packet and send 
+	 * 
+	 * @param blockNumber
+	 * @param destination port
+	 */
 	public void sendAckPacket(int blockNumber, int port) {
 		DatagramPacket dp;
 		try {
-			dp = Packet.CreateAckPacket(blockNumber)
-					.generateDatagram(InetAddress.getLocalHost(), port);
+			dp = Packet.CreateAckPacket(blockNumber).generateDatagram(
+					InetAddress.getLocalHost(), port);
 			socket.send(dp);
 		} catch (InvalidPacketException e) {
 			e.printStackTrace();
@@ -188,9 +203,14 @@ public class Client {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 
+	/*
+	 * Receive the data packet 
+	 * 
+	 * @return: Data Packet
+	 */
 	public DatagramPacket receiveDataPacket() {
 		DatagramPacket dp = null;
 		try {
@@ -204,6 +224,14 @@ public class Client {
 		return dp;
 	}
 
+	/*
+	 * Send the DataPacket to the server 
+	 * Wait for ack packet from the server and receive it.
+	 * 
+	 * @param Data Packet
+	 * @param destination port
+	 * @return port# associated with Ack packet from the source
+	 */
 	public int sendDataPacket(DataPacket packet, int port) {
 
 		// Log to terminal
@@ -224,14 +252,23 @@ public class Client {
 		return port;
 	}
 
+	/*
+	 * Read the data from the file and store in in a byte Array
+	 * @param File
+	 * @return byte array
+	 * 
+	 */
 	private byte[] toByteArray(File file) throws IOException {
 		RandomAccessFile f = new RandomAccessFile(file.getAbsolutePath(), "r");
-		byte[] b = new byte[(int)f.length()];
+		byte[] b = new byte[(int) f.length()];
 		f.read(b);
 		f.close();
 		return b;
 	}
 
+	/*
+	 * Create a new datagram socket 
+	 */
 	public void connect() {
 		try {
 			socket = new DatagramSocket();
@@ -239,23 +276,31 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
-
+	
+	/*
+	 * Disconnect the socket
+	 */
 	public void disconnect() {
 		socket.disconnect();
 	}
-
+	
+	/*
+	 * Create Read request packet and send the request to the server
+	 */
 	public void read(String filename) {
 		sendRequest(RequestPacket.CreateReadRequest(filename));
 	}
-
+	
+	/*
+	 * Create Write request packet and send the request to the server
+	 */
 	public void write(String filename) {
 		sendRequest(RequestPacket.CreateWriteRequest(filename));
 	}
 
-	// public void sendInvalidRequest(String filename) {
-	// sendRequest(new RequestPacket(filename, RequestPacket.Action.INVALID));
-	// }
-
+	/*
+	 * Send the Request to the server via the error simulator
+	 */
 	public void sendRequest(RequestPacket rq) {
 		try {
 			if (null == rq.mode) {
@@ -281,7 +326,10 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
-
+	
+	/*
+	 * Receive the Ack packet
+	 */
 	protected int receiveResponse() {
 		int port = -1;
 		try {

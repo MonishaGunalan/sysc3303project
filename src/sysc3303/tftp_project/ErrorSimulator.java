@@ -11,8 +11,8 @@ import java.util.Scanner;
 
 /**
  * @author Korey Conway (100838924)
- * @author Monisha
- * @author Arzaan
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
  */
 public class ErrorSimulator {
 	protected InetAddress serverAddress;
