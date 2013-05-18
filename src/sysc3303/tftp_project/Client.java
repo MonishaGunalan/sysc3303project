@@ -21,6 +21,7 @@ import java.util.StringTokenizer;
 
 public class Client {
 	protected DatagramSocket socket;
+	protected int errorSimulatorPort = 6800;
 	protected int serverPort = 6900;
 	protected RequestPacket.Mode defaultTransferMode = RequestPacket.Mode.ASCII;
 	protected String publicFolder = System.getProperty("user.dir")
@@ -323,7 +324,7 @@ public class Client {
 
 			// Create the packet
 			DatagramPacket dp = new DatagramPacket(data, data.length,
-					InetAddress.getLocalHost(), serverPort);
+					InetAddress.getLocalHost(), errorSimulatorPort);
 
 			// Send the packet
 			socket.send(dp);
