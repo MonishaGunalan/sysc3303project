@@ -41,7 +41,7 @@ public class Server {
 
 		while (true) {
 			System.out.print("Command: ");
-			String command = scanner.nextLine();
+			String command = scanner.nextLine().toLowerCase();
 
 			// Continue if blank line was passed
 			if (command.length() == 0) {
