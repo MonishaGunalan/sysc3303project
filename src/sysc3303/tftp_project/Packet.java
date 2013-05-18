@@ -10,6 +10,7 @@ import java.net.InetAddress;
  */
 public abstract class Packet {
 	protected Type type;
+	public static final int maxLength = 516;
 
 	public enum Type {
 		RRQ, WRQ, DATA, ACK, ERROR

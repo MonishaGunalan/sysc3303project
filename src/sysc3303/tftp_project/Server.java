@@ -118,17 +118,18 @@ public class Server {
 	protected class TransferThread extends Thread {
 		protected DatagramSocket socket;
 		protected String filename;
+		protected String filePath;
 		protected boolean isReadRequest;
 		protected int toPort;
 		protected InetAddress toAddress;
 		protected static final int maxDataSize = 512;
-		protected static final int maxPacketSize = 516;
 
 		public TransferThread(RequestPacket packet, InetAddress toAddress,
 				int toPort) {
 			try {
 				socket = new DatagramSocket();
-				this.filename = publicFolder + packet.getFilename();
+				this.filename = packet.getFilename();
+				this.filePath = publicFolder + filename;
 				this.isReadRequest = packet.isReadRequest();
 				this.toAddress = toAddress;
 				this.toPort = toPort;
@@ -151,7 +152,7 @@ public class Server {
 
 		public void runReadRequest() {
 			try {
-				FileInputStream fs = new FileInputStream(filename);
+				FileInputStream fs = new FileInputStream(filePath);
 				byte[] data = new byte[maxDataSize];
 				int blockNumber = 1;
 				boolean isLastDataPacket = false;
@@ -159,7 +160,7 @@ public class Server {
 				Packet pk;
 
 				while (!isLastDataPacket) {
-					// Read file in 512 byte chuncks
+					// Read file in 512 byte chunks
 					int bytesRead = fs.read(data, (blockNumber - 1)
 							* maxDataSize, maxDataSize);
 					isLastDataPacket = (bytesRead == maxDataSize);
@@ -178,7 +179,7 @@ public class Server {
 					socket.send(dp);
 
 					// Wait until we receive correct ack packet
-					data = new byte[maxPacketSize];
+					data = new byte[Packet.maxLength];
 					dp = new DatagramPacket(data, data.length);
 					do {
 						socket.receive(dp);
@@ -189,8 +190,8 @@ public class Server {
 													// client is using dynamic
 													// IP (not likely needed,
 													// but good extra feature)
-					System.out.printf("Received ack for block %i%n",
-							blockNumber);
+					System.out.printf("Received ack for block %i of %s%n",
+							blockNumber, filename);
 					blockNumber++;
 				}
 				fs.close();
@@ -207,7 +208,7 @@ public class Server {
 		public void runWriteRequest() {
 			try {
 				FileOutputStream fs;
-				fs = new FileOutputStream(filename);
+				fs = new FileOutputStream(filePath);
 				int blockNumber = 0;
 				boolean isLastDataPacket = false;
 				InetAddress toAddress = this.toAddress;
@@ -219,7 +220,8 @@ public class Server {
 					DatagramPacket dp = Packet.CreateAckPacket(blockNumber)
 							.generateDatagram(toAddress, toPort);
 					socket.send(dp);
-					System.out.println("ack sent");
+					System.out.printf("Sent ack for block %i of %s%n",
+							blockNumber, filename);
 					if (isLastDataPacket) {
 						break;
 					}
@@ -229,20 +231,22 @@ public class Server {
 
 					// Receive data packet
 					do {
-						System.out.print("Rec ");
-						dp = new DatagramPacket(new byte[maxPacketSize],
-								maxPacketSize);
+						dp = new DatagramPacket(new byte[Packet.maxLength],
+								Packet.maxLength);
 						socket.receive(dp);
 						pk = Packet.CreateFromBytes(dp.getData(),
 								dp.getLength());
 						System.out.println(((DataPacket) pk).getBlockNumber());
 					} while (pk.getType() != Packet.Type.DATA
 							|| ((DataPacket) pk).getBlockNumber() != blockNumber);
+					
+					System.out.printf("Received block %d of %s%n", blockNumber,
+							filename);
 
 					// Save into file
 					dataPk = (DataPacket) pk;
 					fs.write(dataPk.getData());
-					System.out.println(dataPk.getDataLength());
+
 					if (dataPk.getDataLength() != maxDataSize) {
 						isLastDataPacket = true;
 					}
