@@ -8,9 +8,10 @@ import sysc3303.tftp_project.RequestPacket.Mode;
 
 /**
  * @author Korey Conway (100838924)
- * @author Monisha
- * @author Arzaan
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
  */
+
 public abstract class Packet {
 	protected Type type;
 	public static final int maxLength = 516;

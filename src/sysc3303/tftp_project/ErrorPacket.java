@@ -2,9 +2,10 @@ package sysc3303.tftp_project;
 
 /**
  * @author Korey Conway (100838924)
- * @author Monisha
- * @author Arzaan
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
  */
+
 public class ErrorPacket extends Packet {
 	static final protected int opCode = 5;
 	protected int blockNumber = 0;

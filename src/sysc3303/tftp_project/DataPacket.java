@@ -3,6 +3,12 @@ package sysc3303.tftp_project;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+/**
+ * @author Korey Conway (100838924)
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
+ */
+
 public class DataPacket extends Packet {
 	static final protected int opCode = 4;
 	static final protected int maxDataLength = 512;
