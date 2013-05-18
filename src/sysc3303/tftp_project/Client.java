@@ -167,7 +167,9 @@ public class Client {
 	public CMD getInput() {
 		CMD cmd = null;
 		Scanner in = new Scanner(System.in);
+		System.out.println();
 		System.out.println("Please enter the command: ");
+		
 		String inputCmd;
 		inputCmd = in.nextLine();
 		if (inputCmd.equalsIgnoreCase("help")) {
