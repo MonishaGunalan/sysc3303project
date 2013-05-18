@@ -84,7 +84,7 @@ public class Server {
 			try {
 				socket = new DatagramSocket(boundPort);
 			} catch (SocketException e) {
-				System.out.printf("Failed to bind to port %i%n", boundPort);
+				System.out.printf("Failed to bind to port %d%n", boundPort);
 				System.exit(1);
 			}
 		}
@@ -190,7 +190,7 @@ public class Server {
 													// client is using dynamic
 													// IP (not likely needed,
 													// but good extra feature)
-					System.out.printf("Received ack for block %i of %s%n",
+					System.out.printf("Received ack for block %d of %s%n",
 							blockNumber, filename);
 					blockNumber++;
 				}
@@ -220,7 +220,7 @@ public class Server {
 					DatagramPacket dp = Packet.CreateAckPacket(blockNumber)
 							.generateDatagram(toAddress, toPort);
 					socket.send(dp);
-					System.out.printf("Sent ack for block %i of %s%n",
+					System.out.printf("Sent ack for block %d of %s%n",
 							blockNumber, filename);
 					if (isLastDataPacket) {
 						break;

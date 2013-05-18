@@ -38,28 +38,6 @@ public class RequestPacket extends Packet {
 		this.type = (action == Action.READ) ? Type.RRQ : Type.WRQ;
 	}
 
-	/**
-	 * Factory method to create a read request
-	 * 
-	 * @param filename
-	 *            filename of the file to be read
-	 * @return a read RequestPacket
-	 */
-	public static RequestPacket CreateReadRequest(String filename) {
-		return new RequestPacket(Action.READ, filename, Mode.OCTET);
-	}
-
-	/**
-	 * Factory method to create a write request
-	 * 
-	 * @param filename
-	 *            filename of the file to be written
-	 * @return a write RequestPacket
-	 */
-	public static RequestPacket CreateWriteRequest(String filename) {
-		return new RequestPacket(Action.WRITE, filename, Mode.OCTET);
-	}
-
 	public String getFilename() {
 		return filename;
 	}

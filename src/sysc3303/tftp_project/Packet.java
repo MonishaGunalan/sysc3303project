@@ -3,6 +3,9 @@ package sysc3303.tftp_project;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
+import sysc3303.tftp_project.RequestPacket.Action;
+import sysc3303.tftp_project.RequestPacket.Mode;
+
 /**
  * @author Korey Conway (100838924)
  * @author Monisha
@@ -16,12 +19,26 @@ public abstract class Packet {
 		RRQ, WRQ, DATA, ACK, ERROR
 	}
 
-	static void CreateReadRequestPacket() {
-		// TODO
+	/**
+	 * Factory method to create a read request
+	 * 
+	 * @param filename
+	 *            filename of the file to be read
+	 * @return a read RequestPacket
+	 */
+	public static RequestPacket CreateReadRequest(String filename) {
+		return new RequestPacket(Action.READ, filename, Mode.OCTET);
 	}
 
-	static void CreateWriteRequestPacket() {
-		// TODO
+	/**
+	 * Factory method to create a write request
+	 * 
+	 * @param filename
+	 *            filename of the file to be written
+	 * @return a write RequestPacket
+	 */
+	public static RequestPacket CreateWriteRequest(String filename) {
+		return new RequestPacket(Action.WRITE, filename, Mode.OCTET);
 	}
 
 	static AckPacket CreateAckPacket(int blockNumber) {

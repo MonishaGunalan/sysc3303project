@@ -1,6 +1,7 @@
 package sysc3303.tftp_project;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class DataPacket extends Packet {
 	static final protected int opCode = 4;
@@ -27,20 +28,20 @@ public class DataPacket extends Packet {
 		this.type = Type.DATA;
 	}
 
-	public static DataPacket CreateFromBytes(byte[] data, int dataLength)
+	public static DataPacket CreateFromBytes(byte[] packetDate, int packetDataLength)
 			throws InvalidPacketException {
 		// TODO: catch index out of bounds exceptions
-		if (data[0] != 0 || data[1] != 4 || data[dataLength - 1] != 0) {
+		if (packetDate[0] != 0 || packetDate[1] != 4) {
 			throw new InvalidPacketException();
 		}
 
 		// Extract the data portion
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		stream.write(data, 4, dataLength - 4);
+		stream.write(packetDate, 4, packetDataLength - 4);
 
-		int blockNumber = (data[2] << 8) + data[3];
-		data = stream.toByteArray();
-		return new DataPacket(blockNumber, data, data.length);
+		int blockNumber = (packetDate[2] << 8) + packetDate[3];
+		packetDate = stream.toByteArray();
+		return new DataPacket(blockNumber, packetDate, packetDate.length);
 	}
 
 	/**
@@ -69,16 +70,21 @@ public class DataPacket extends Packet {
 	 */
 	@Override
 	public byte[] generateData() throws InvalidPacketException {
-		if ((data == null && dataLength != 0) || dataLength < 0
-				|| dataLength > maxDataLength || blockNumber < 0) {
-			throw new IllegalArgumentException();
+		try {
+			if ((data == null && dataLength != 0) || dataLength < 0
+					|| dataLength > maxDataLength || blockNumber < 0) {
+				throw new IllegalArgumentException();
+			}
+			ByteArrayOutputStream stream = new ByteArrayOutputStream();
+			stream.write(0);
+			stream.write(opCode);
+			stream.write(blockNumber >> 8);
+			stream.write(blockNumber);
+			stream.write(data);
+			return stream.toByteArray();
+		} catch (IOException e) {
+			throw new InvalidPacketException();
 		}
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		stream.write(0);
-		stream.write(opCode);
-		stream.write(blockNumber >> 8);
-		stream.write(blockNumber);
-		return stream.toByteArray();
 	}
 
 	/**
@@ -98,11 +104,11 @@ public class DataPacket extends Packet {
 		str.append((byte) opCode);
 		str.append((byte) (blockNumber >> 8));
 		str.append((byte) blockNumber);
-		
-		for ( byte b:data ) {
+
+		for (byte b : data) {
 			str.append(String.format("%x", b));
 		}
-		
+
 		return str.toString();
 	}
 }
