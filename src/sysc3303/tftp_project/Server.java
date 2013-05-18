@@ -16,7 +16,7 @@ import java.util.Scanner;
  * @author Arzaan (100826631)
  */
 public class Server {
-	protected static final int listenPort = 6900;
+	protected static final int listenPort = 69;
 	protected String publicFolder = System.getProperty("user.dir")
 			+ "/server_files/";
 	protected int threadCount = 0;

@@ -16,8 +16,8 @@ import java.util.Scanner;
  */
 public class ErrorSimulator {
 	protected InetAddress serverAddress;
-	protected int serverRequestPort = 6900;
-	protected int clientRequestPort = 6800;
+	protected int serverRequestPort = 69;
+	protected int clientRequestPort = 68;
 	protected int threadCount = 0;
 	protected boolean stopping = false;
 	protected RequestReceiveThread requestReceive;
