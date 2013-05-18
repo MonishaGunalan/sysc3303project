@@ -29,7 +29,7 @@ public class Client {
 	private String filename;
 
 	private enum CMD {
-		READ, WRITE, STOP, INVALID
+		READ, WRITE, STOP, INVALID, HELP
 	}
 
 	/**
@@ -44,6 +44,9 @@ public class Client {
 		while (!isDone) {
 			CMD cmd = c.getInput();
 			switch (cmd) {
+			case HELP:{
+				break;
+			}
 			case READ: {
 				c.readReq();
 				break;
@@ -125,6 +128,7 @@ public class Client {
 			data = dp.getData();
 			DataPacket dataPacket = DataPacket.CreateFromBytes(data,
 					data.length);
+			
 			try {
 				fs.write(dataPacket.getData());
 			} catch (IOException e) {
@@ -161,7 +165,9 @@ public class Client {
 			System.out
 					.println("write <filename> : send write request to server. @param <filename>: full path of the file name.");
 			System.out
-					.println("stop : close the client (waits until current transmissions are done");
+					.println("stop : close the client (waits until current transmissions are done.");
+			
+			cmd = CMD.HELP;
 		} else if (inputCmd.equalsIgnoreCase("stop")) {
 			cmd = CMD.STOP;
 		} else {
