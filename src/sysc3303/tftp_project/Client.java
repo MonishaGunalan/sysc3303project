@@ -136,15 +136,17 @@ public class Client {
 			DatagramPacket dp = receiveDataPacket();
 			data = dp.getData();
 			DataPacket dataPacket = DataPacket.CreateFromBytes(data,
-					data.length);
+					dp.getLength());
 			
 			try {
 				fs.write(dataPacket.getData());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			System.out.println("Length of data packet: " + dataPacket.getDataLength());
 			if (dataPacket.getDataLength() < DataPacket.maxDataLength) {
 				isReadDone = true;
+				System.out.println("Last Data packet");
 				try {
 					fs.close();
 				} catch (IOException e) {
