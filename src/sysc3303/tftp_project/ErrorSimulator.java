@@ -18,8 +18,9 @@ public class ErrorSimulator {
 	protected InetAddress serverAddress;
 	protected int serverRequestPort = 6900;
 	protected int clientRequestPort = 6800;
-
+	protected int threadCount = 0;
 	protected boolean stopping = false;
+	protected RequestReceiveThread requestReceive;
 
 	/**
 	 * Constructor
@@ -27,7 +28,8 @@ public class ErrorSimulator {
 	public ErrorSimulator() {
 		try {
 			serverAddress = InetAddress.getLocalHost();
-			new RequestReceiveThread().start();
+			requestReceive = new RequestReceiveThread();
+			requestReceive.start();
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -69,8 +71,31 @@ public class ErrorSimulator {
 		}
 	}
 
+	synchronized public void incrementThreadCount() {
+		threadCount++;
+	}
+
+	synchronized public void decrementThreadCount() {
+		threadCount--;
+	}
+
+	synchronized public int getThreadCount() {
+		return threadCount;
+	}
+
 	public void stop() {
-		stopping = true;
+		requestReceive.getSocket().close();
+		
+		// wait for threads to finish
+		while(getThreadCount() > 0) {
+			try {
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				// Ignore errors
+			}
+		}
+		System.out.println("Error simulator closed.");
+		System.exit(0);
 	}
 
 	protected class RequestReceiveThread extends Thread {
@@ -80,23 +105,30 @@ public class ErrorSimulator {
 			try {
 				socket = new DatagramSocket(clientRequestPort);
 			} catch (SocketException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Count not bind to port: " + clientRequestPort);
+				System.exit(1);
 			}
 		}
 
 		public void run() {
 			try {
-				while (!stopping) {
+				incrementThreadCount();
+
+				while (!socket.isClosed()) {
 					byte[] data = new byte[RequestPacket.maxPacketSize];
 					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
 					new ForwardThread(dp).start();
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// Probably just closing the thread down
 			}
+
+			decrementThreadCount();
+		}
+
+		public DatagramSocket getSocket() {
+			return socket;
 		}
 	}
 
@@ -113,6 +145,8 @@ public class ErrorSimulator {
 
 		public void run() {
 			try {
+				incrementThreadCount();
+
 				socket = new DatagramSocket();
 				socket.setSoTimeout(timeoutMs);
 				clientAddress = requestPacket.getAddress();
@@ -150,6 +184,8 @@ public class ErrorSimulator {
 			} catch (IOException e) {
 				System.out.println("Socket error: closing thread.");
 			}
+
+			decrementThreadCount();
 		}
 	}
 }

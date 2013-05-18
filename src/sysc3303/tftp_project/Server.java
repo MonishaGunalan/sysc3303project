@@ -13,19 +13,21 @@ import java.util.Scanner;
 /**
  * @author Korey Conway (100838924)
  * @author Monisha (100871444)
- * @author Arzaan  (100826631)
+ * @author Arzaan (100826631)
  */
 public class Server {
-	protected boolean stopping = false;
 	protected static final int listenPort = 6900;
 	protected String publicFolder = System.getProperty("user.dir")
 			+ "/server_files/";
+	protected int threadCount = 0;
+	protected RequestListenerThread requestListener;
 
 	/**
 	 * Constructor
 	 */
 	public Server() {
-		new RequestListenerThread(listenPort).start();
+		requestListener = new RequestListenerThread(listenPort);
+		requestListener.start();
 	}
 
 	/**
@@ -51,6 +53,8 @@ public class Server {
 				System.out.println("    help: prints this help menu");
 				System.out
 						.println("    stop: stop the server (when current transfers finish)");
+				System.out
+						.println("    pwd: prints out the public directory for file transfers");
 			} else if (command.equals("stop")) {
 				System.out
 						.println("Stopping server (when current transfers finish)");
@@ -58,6 +62,8 @@ public class Server {
 			} else if (command.equals("pwd")) {
 				System.out.println("Current shared directory: "
 						+ server.getPublicFolder());
+			} else if (command.equals("test")) {
+				System.out.println(server.getThreadCount());
 			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
@@ -68,8 +74,32 @@ public class Server {
 		}
 	}
 
+	synchronized public void incrementThreadCount() {
+		threadCount++;
+	}
+
+	synchronized public void decrementThreadCount() {
+		threadCount--;
+	}
+
+	synchronized public int getThreadCount() {
+		return threadCount;
+	}
+
 	public void stop() {
-		stopping = true;
+		requestListener.getSocket().close();
+		System.out.println("Stopping... waiting for threads to finish");
+		while (getThreadCount() > 0) {
+			// Wait for threads to finish
+			// TODO: future version could use wait/notify
+			try {
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				// Ignore errors
+			}
+		}
+		System.out.println("Exiting");
+		System.exit(0);
 	}
 
 	public String getPublicFolder() {
@@ -88,12 +118,18 @@ public class Server {
 			}
 		}
 
+		public DatagramSocket getSocket() {
+			return socket;
+		}
+
 		@Override
 		public void run() {
-			while (!stopping) {
-				byte[] data = new byte[RequestPacket.maxPacketSize];
-				DatagramPacket dp = new DatagramPacket(data, data.length);
-				try {
+			try {
+				incrementThreadCount();
+
+				while (!socket.isClosed()) {
+					byte[] data = new byte[RequestPacket.maxPacketSize];
+					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
 					Packet packet = Packet.CreateFromBytes(dp.getData(),
 							dp.getLength());
@@ -105,13 +141,16 @@ public class Server {
 					} else {
 						// we received an invalid packet, so ignore it
 					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
+			} catch (IOException e) {
+				// Ignore
 			}
+
+			socket.disconnect();
 			System.out.println("RequestListenerThread has stopped.");
+			decrementThreadCount();
 		}
+
 	}
 
 	protected class TransferThread extends Thread {
@@ -142,11 +181,15 @@ public class Server {
 
 		@Override
 		public void run() {
+			incrementThreadCount();
+
 			if (isReadRequest) {
 				this.runReadRequest();
 			} else {
 				this.runWriteRequest();
 			}
+
+			decrementThreadCount();
 		}
 
 		public void runReadRequest() {
@@ -237,7 +280,7 @@ public class Server {
 								dp.getLength());
 					} while (pk.getType() != Packet.Type.DATA
 							|| ((DataPacket) pk).getBlockNumber() != blockNumber);
-					
+
 					System.out.printf("Received block %d of %s%n", blockNumber,
 							filename);
 
