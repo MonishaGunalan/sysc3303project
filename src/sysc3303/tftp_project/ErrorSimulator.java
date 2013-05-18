@@ -56,7 +56,7 @@ public class ErrorSimulator {
 				System.out.println("Available commands:");
 				System.out.println("    help: prints this help menu");
 				System.out
-						.println("    stop: stop the server (when current transfers finish)");
+						.println("    stop: stop the error simulator (when current transfers finish)");
 			} else if (command.equals("stop")) {
 				System.out
 						.println("Stopping simulator (when current transfers finish)");
