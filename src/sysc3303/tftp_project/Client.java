@@ -58,10 +58,20 @@ public class Client {
 			}
 			case STOP: {
 				isDone = true;
-				c.finalize();
+				c.disconnect();
+				System.out.println("Exiting Program");
+				System.exit(0);
 				break;
 			}
 			case INVALID: {
+				System.out.println("Entered an Invalid command");
+				System.out.println("List of  Valid Terminal Commands:");
+				System.out
+						.println("read <filename> : send read request to server. @param <filename>: full path of the file name.");
+				System.out
+						.println("write <filename> : send write request to server. @param <filename>: full path of the file name.");
+				System.out
+						.println("stop : close the client (waits until current transmissions are done.");
 				break;
 			}
 			}
@@ -144,6 +154,7 @@ public class Client {
 				}
 			}
 			// Send Ack 
+			System.out.println("Sending Ack from client, block#" + blockNumber);
 			sendAckPacket(blockNumber++, dp.getPort());
 		}
 	}
@@ -224,7 +235,7 @@ public class Client {
 			byte data[] = new byte[DataPacket.maxLength];
 			dp = new DatagramPacket(data, data.length);
 			socket.receive(dp);
-
+			System.out.println("Received data packet from server of block " + DataPacket.CreateFromBytes(dp.getData(), dp.getLength()).getBlockNumber());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -324,7 +335,7 @@ public class Client {
 
 			// Create the packet
 			DatagramPacket dp = new DatagramPacket(data, data.length,
-					InetAddress.getLocalHost(), errorSimulatorPort);
+					InetAddress.getLocalHost(), serverPort);
 
 			// Send the packet
 			socket.send(dp);
@@ -363,7 +374,4 @@ public class Client {
 		return port;
 	}
 
-	public void finalize() {
-		disconnect();
-	}
 }
