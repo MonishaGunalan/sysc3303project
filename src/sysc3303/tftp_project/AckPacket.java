@@ -16,7 +16,7 @@ public class AckPacket extends Packet {
 	 *            for the packet
 	 * @throws IllegalArgumentException
 	 */
-	AckPacket(int blockNumber) throws IllegalArgumentException {
+	public AckPacket(int blockNumber) throws IllegalArgumentException {
 		if (blockNumber < 0) {
 			throw new IllegalArgumentException();
 		}
@@ -31,7 +31,7 @@ public class AckPacket extends Packet {
 	 * @param dataLength
 	 * @return the byte array of the packet
 	 */
-	static AckPacket CreateFromBytes(byte[] data, int dataLength)
+	public static AckPacket CreateFromBytes(byte[] data, int dataLength)
 			throws InvalidPacketException {
 		try {
 			if (data == null || data.length < 4 || data[0] != 0
