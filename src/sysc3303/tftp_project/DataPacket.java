@@ -29,7 +29,8 @@ public class DataPacket extends Packet {
 			throw new IllegalArgumentException();
 		}
 		this.blockNumber = blockNumber;
-		this.data = data;
+		this.data = new byte[dataLength];
+		System.arraycopy(data, 0, this.data, 0, dataLength);
 		this.dataLength = dataLength;
 		this.type = Type.DATA;
 	}
