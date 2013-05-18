@@ -1,11 +1,10 @@
 package sysc3303.tftp_project;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -40,7 +39,7 @@ public class Client {
 		c.connect();
 
 		boolean isDone = false;
-		// Get the input from the user
+		// Perform functions based on the input from the console
 		while (!isDone) {
 			CMD cmd = c.getInput();
 			switch (cmd) {
@@ -54,6 +53,7 @@ public class Client {
 			}
 			case STOP: {
 				isDone = true;
+				c.finalize();
 				break;
 			}
 			case INVALID: {
@@ -64,12 +64,13 @@ public class Client {
 
 	}
 
-
+		// Create a Write RequestPacket
 		public void writeReq() {
 			boolean isWriteDone = false;
 			int blockNumber = 0;
 			byte[] data = null;
-			int port = write(filename);
+			write(filename);
+			int port = receiveResponse();
 			try {
 				data = toByteArray(new File(publicFolder,
 						filename));
@@ -79,18 +80,20 @@ public class Client {
 				e1.printStackTrace();
 			}
 			while (!isWriteDone) {
-				blockNumber++;
-				// Generate data packets to be sent
+				
+// Generate data packets to be sent
 				int packetSize = data.length
-						- ((blockNumber -1) * DataPacket.maxDataLength);
+						- ((blockNumber) * DataPacket.maxDataLength);
 				System.out.println(packetSize);
 				if (packetSize > DataPacket.maxDataLength)
 					packetSize = DataPacket.maxDataLength;
 				else
 					isWriteDone = true;
 				byte[] blockData = new byte[packetSize];
-				int offset = (blockNumber - 1) * DataPacket.maxDataLength;
+				int offset = (blockNumber) * DataPacket.maxDataLength;
 				System.arraycopy(data, offset, blockData, 0, blockData.length);
+				blockNumber++;
+
 				sendDataPacket(new DataPacket(blockNumber, blockData,
 						blockData.length), port);
 			}
@@ -102,21 +105,16 @@ public class Client {
 			boolean isReadDone = false;
 			int blockNumber = 1;
 			byte[] data = null;
-			int port = read(filename);
+			read(filename);
 			FileOutputStream fs = null;
 			try {
 				fs  = new FileOutputStream(new File(
 						publicFolder, filename));
-
-				data = toByteArray(new File(publicFolder,
-						filename));
 			} catch (FileNotFoundException e1) {
-				e1.printStackTrace();
-			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 			while (!isReadDone) {
-				DatagramPacket dp = receiveDataPacket(port);
+				DatagramPacket dp = receiveDataPacket();
 				data = dp.getData();
 				DataPacket dataPacket = DataPacket.CreateFromBytes(data, data.length);
 				try {
@@ -127,7 +125,6 @@ public class Client {
 				if(dataPacket.getDataLength() < DataPacket.maxDataLength){
 					isReadDone = true;
 					try {
-						fs.flush();
 						fs.close();
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -138,7 +135,10 @@ public class Client {
 			}
 		}
 	
-
+	/* Get the input command and the file name from the user
+	 * 
+	 * @return Input Command
+	 */
 	public CMD getInput() {
 		CMD cmd = null;
 		Scanner in = new Scanner(System.in);
@@ -191,14 +191,12 @@ public class Client {
 		
 	}
 
-	public DatagramPacket receiveDataPacket(int port) {
+	public DatagramPacket receiveDataPacket() {
 		DatagramPacket dp = null;
 		try {
-			byte data[] = new byte[DataPacket.maxDataLength + DataPacket.headerLength];
+			byte data[] = new byte[DataPacket.maxLength];
 			dp = new DatagramPacket(data, data.length);
 			socket.receive(dp);
-			data = dp.getData();
-			port = dp.getPort();
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -226,18 +224,12 @@ public class Client {
 		return port;
 	}
 
-	private byte[] toByteArray(File file) throws FileNotFoundException,
-			IOException {
-		int length = (int) file.length();
-		byte[] array = new byte[length];
-		InputStream in = new FileInputStream(file);
-		int offset = 0;
-		while (offset < length) {
-			offset += in.read(array, offset, (length - offset));
-		}
-		in.close();
-		System.out.println("read size " + array.length);
-		return array;
+	private byte[] toByteArray(File file) throws IOException {
+		RandomAccessFile f = new RandomAccessFile(file.getAbsolutePath(), "r");
+		byte[] b = new byte[(int)f.length()];
+		f.read(b);
+		f.close();
+		return b;
 	}
 
 	public void connect() {
@@ -252,20 +244,19 @@ public class Client {
 		socket.disconnect();
 	}
 
-	public int read(String filename) {
-		return sendRequest(RequestPacket.CreateReadRequest(filename));
+	public void read(String filename) {
+		sendRequest(RequestPacket.CreateReadRequest(filename));
 	}
 
-	public int write(String filename) {
-		return sendRequest(RequestPacket.CreateWriteRequest(filename));
+	public void write(String filename) {
+		sendRequest(RequestPacket.CreateWriteRequest(filename));
 	}
 
 	// public void sendInvalidRequest(String filename) {
 	// sendRequest(new RequestPacket(filename, RequestPacket.Action.INVALID));
 	// }
 
-	public int sendRequest(RequestPacket rq) {
-		int port = -1;
+	public void sendRequest(RequestPacket rq) {
 		try {
 			if (null == rq.mode) {
 				rq.mode = defaultTransferMode;
@@ -286,12 +277,9 @@ public class Client {
 			// Send the packet
 			socket.send(dp);
 
-			// Receive response
-			port = receiveResponse();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return port;
 	}
 
 	protected int receiveResponse() {
