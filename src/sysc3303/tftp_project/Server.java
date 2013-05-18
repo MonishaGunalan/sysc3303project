@@ -13,7 +13,7 @@ import java.util.Scanner;
 /**
  * @author Korey Conway (100838924)
  * @author Monisha (100871444)
- * @author Arzaan  (100826631)
+ * @author Arzaan (100826631)
  */
 public class Server {
 	protected static final int listenPort = 6900;
@@ -87,20 +87,19 @@ public class Server {
 	}
 
 	public void stop() {
-		try {
-			requestListener.getSocket().close();
-			System.out.println("Stopping... waiting for threads to finish");
-			while (getThreadCount() > 0) {
-				// Wait for threads to finish
-				// TODO: future version could use wait/notify
+		requestListener.getSocket().close();
+		System.out.println("Stopping... waiting for threads to finish");
+		while (getThreadCount() > 0) {
+			// Wait for threads to finish
+			// TODO: future version could use wait/notify
+			try {
 				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				// Ignore errors
 			}
-			System.out.println("Exiting");
-			System.exit(0);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
+		System.out.println("Exiting");
+		System.exit(0);
 	}
 
 	public String getPublicFolder() {
