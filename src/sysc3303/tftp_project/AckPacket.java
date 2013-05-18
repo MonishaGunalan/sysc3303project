@@ -31,7 +31,8 @@ public class AckPacket extends Packet {
 	 * @param dataLength
 	 * @return the byte array of the packet
 	 */
-	static AckPacket CreateFromBytes(byte[] data, int dataLength) throws InvalidPacketException {
+	static AckPacket CreateFromBytes(byte[] data, int dataLength)
+			throws InvalidPacketException {
 		try {
 			if (data == null || data.length < 4 || data[0] != 0
 					|| data[1] != opCode) {
@@ -40,7 +41,7 @@ public class AckPacket extends Packet {
 
 			int blockNumber = (data[2] << 8) + data[3];
 			return new AckPacket(blockNumber);
-		} catch ( Exception e ) {
+		} catch (Exception e) {
 			throw new InvalidPacketException();
 		}
 	}
@@ -66,8 +67,8 @@ public class AckPacket extends Packet {
 		byte[] data = new byte[4];
 		data[0] = 0;
 		data[1] = (byte) opCode;
-		data[2] = (byte) (blockNumber);
-		data[3] = (byte) (blockNumber >> 8);
+		data[2] = (byte) (blockNumber >> 8);
+		data[3] = (byte) (blockNumber);
 		return data;
 	}
 }

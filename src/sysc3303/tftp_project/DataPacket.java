@@ -36,7 +36,7 @@ public class DataPacket extends Packet {
 
 		// Extract the data portion
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		stream.write(data, 4, dataLength - 3);
+		stream.write(data, 4, dataLength - 4);
 
 		int blockNumber = (data[2] << 8) + data[3];
 		data = stream.toByteArray();

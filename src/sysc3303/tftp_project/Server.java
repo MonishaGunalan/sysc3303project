@@ -132,7 +132,8 @@ public class Server {
 				this.isReadRequest = packet.isReadRequest();
 				this.toAddress = toAddress;
 				this.toPort = toPort;
-				this.start();
+
+				// this.start();
 			} catch (SocketException e) {
 				System.out.println("Failed to open socket for transfer for "
 						+ filename);
@@ -169,7 +170,7 @@ public class Server {
 					}
 
 					// Send data packet
-					System.out.printf("Sending block %i of %s%n", blockNumber,
+					System.out.printf("Sending block %d of %s%n", blockNumber,
 							filename);
 					DatagramPacket dp = Packet.CreateDataPacket(blockNumber,
 							data, bytesRead)
@@ -218,7 +219,7 @@ public class Server {
 					DatagramPacket dp = Packet.CreateAckPacket(blockNumber)
 							.generateDatagram(toAddress, toPort);
 					socket.send(dp);
-					
+					System.out.println("ack sent");
 					if (isLastDataPacket) {
 						break;
 					}
@@ -228,23 +229,25 @@ public class Server {
 
 					// Receive data packet
 					do {
+						System.out.print("Rec ");
 						dp = new DatagramPacket(new byte[maxPacketSize],
 								maxPacketSize);
 						socket.receive(dp);
 						pk = Packet.CreateFromBytes(dp.getData(),
 								dp.getLength());
-						
+						System.out.println(((DataPacket) pk).getBlockNumber());
 					} while (pk.getType() != Packet.Type.DATA
-							|| ((DataPacket)pk).getBlockNumber() != blockNumber);
+							|| ((DataPacket) pk).getBlockNumber() != blockNumber);
 
 					// Save into file
-					dataPk = (DataPacket)pk;
-					fs.write(dataPk.getData(), ((blockNumber-1)*maxPacketSize), dataPk.getDataLength());
-					
-					if (dataPk.getDataLength() != maxPacketSize) {
+					dataPk = (DataPacket) pk;
+					fs.write(dataPk.getData());
+					System.out.println(dataPk.getDataLength());
+					if (dataPk.getDataLength() != maxDataSize) {
 						isLastDataPacket = true;
 					}
 				}
+
 				fs.close();
 			} catch (FileNotFoundException e) {
 				System.out.println("Cannot write to: " + filename);
