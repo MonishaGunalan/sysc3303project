@@ -10,9 +10,10 @@ import java.util.Scanner;
 
 /**
  * @author Korey Conway (100838924)
- * @author Monisha
- * @author Arzaan
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
  */
+
 public class ErrorSimulator {
 	protected InetAddress serverAddress;
 	protected int serverRequestPort = 6900;
@@ -74,6 +75,7 @@ public class ErrorSimulator {
 
 	protected class RequestReceiveThread extends Thread {
 		protected DatagramSocket socket;
+		protected static final int maxPacketSize = 100;
 
 		public RequestReceiveThread() {
 			try {
@@ -87,7 +89,7 @@ public class ErrorSimulator {
 		public void run() {
 			try {
 				while (!stopping) {
-					byte[] data = new byte[RequestPacket.maxPacketSize];
+					byte[] data = new byte[maxPacketSize];
 					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
 					new ForwardThread(dp).start();
@@ -113,7 +115,7 @@ public class ErrorSimulator {
 				clientSocket.setSoTimeout(timeoutMs);
 				serverSocket = new DatagramSocket();
 				serverSocket.setSoTimeout(timeoutMs);
-				
+
 			} catch (SocketException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -124,7 +126,8 @@ public class ErrorSimulator {
 			try {
 				// send to server
 				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
-						requestPacket.getLength(), serverAddress, serverRequestPort);
+						requestPacket.getLength(), serverAddress,
+						serverRequestPort);
 				serverSocket.send(dp);
 
 				while (true) {

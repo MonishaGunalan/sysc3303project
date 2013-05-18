@@ -12,8 +12,8 @@ import java.util.Scanner;
 
 /**
  * @author Korey Conway (100838924)
- * @author Monisha
- * @author Arzaan
+ * @author Monisha (100871444)
+ * @author Arzaan  (100826631)
  */
 public class Server {
 	protected boolean stopping = false;
@@ -235,7 +235,6 @@ public class Server {
 						socket.receive(dp);
 						pk = Packet.CreateFromBytes(dp.getData(),
 								dp.getLength());
-						System.out.println(((DataPacket) pk).getBlockNumber());
 					} while (pk.getType() != Packet.Type.DATA
 							|| ((DataPacket) pk).getBlockNumber() != blockNumber);
 					

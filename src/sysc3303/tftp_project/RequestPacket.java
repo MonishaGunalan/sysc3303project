@@ -3,6 +3,12 @@ package sysc3303.tftp_project;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+/**
+ * @author Korey Conway (100838924)
+ * @author Monisha (100871444)
+ * @author Arzaan (100826631)
+ */
+
 public class RequestPacket extends Packet {
 	protected String filename = ""; // filename of the file to be transferred
 	protected Action action; // the action (read or write)
