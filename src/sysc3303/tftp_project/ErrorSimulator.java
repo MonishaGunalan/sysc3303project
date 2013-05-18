@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
@@ -57,7 +58,7 @@ public class ErrorSimulator {
 						.println("    stop: stop the server (when current transfers finish)");
 			} else if (command.equals("stop")) {
 				System.out
-						.println("Stopping server (when current transfers finish)");
+						.println("Stopping simulator (when current transfers finish)");
 				errorSimulator.stop();
 			} else {
 				System.out
@@ -102,13 +103,14 @@ public class ErrorSimulator {
 	}
 
 	protected class ForwardThread extends Thread {
-		protected DatagramSocket serverSocket, clientSocket;
+		protected DatagramSocket socket;
 		protected int timeoutMs = 10000; // 10 second receive timeout
 		protected DatagramPacket requestPacket;
-		protected InetAddress clientAddress, serverAddress;
+		protected InetAddress clientAddress;
 		protected int clientPort, serverPort;
 
 		ForwardThread(DatagramPacket requestPacket) {
+<<<<<<< HEAD
 			try {
 				this.requestPacket = requestPacket;
 				clientSocket = new DatagramSocket(requestPacket.getPort());
@@ -120,33 +122,53 @@ public class ErrorSimulator {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+=======
+			this.requestPacket = requestPacket;
+>>>>>>> 3d0953c2bffcc5a4354f299d87d545c95c989dd4
 		}
 
 		public void run() {
 			try {
-				// send to server
+				socket = new DatagramSocket();
+				socket.setSoTimeout(timeoutMs);
+				clientAddress = requestPacket.getAddress();
+				clientPort = requestPacket.getPort();
+
+				// Send request to server
 				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
 						requestPacket.getLength(), serverAddress,
 						serverRequestPort);
+<<<<<<< HEAD
 				serverSocket.send(dp);
+=======
+				socket.send(dp);
+>>>>>>> 3d0953c2bffcc5a4354f299d87d545c95c989dd4
+
+				// Receive from server
+				dp = Packet.createDatagramForReceiving();
+				socket.receive(dp);
+				serverPort = dp.getPort();
 
 				while (true) {
-					// wait for response from server
-					dp = Packet.createDatagramForReceiving();
-					serverSocket.receive(dp);
-
-					// send response to client
+					// Forward to client
 					dp = new DatagramPacket(dp.getData(), dp.getLength(),
 							clientAddress, clientPort);
-					clientSocket.send(dp);
+					socket.send(dp);
 
-					// wait for response from client
+					// Wait for response from client
 					dp = Packet.createDatagramForReceiving();
-					clientSocket.receive(dp);
+					socket.receive(dp);
+
+					// Forward to server
+					dp = new DatagramPacket(dp.getData(), dp.getLength(),
+							serverAddress, serverPort);
+					socket.receive(dp);
 				}
+			} catch (SocketTimeoutException e) {
+				System.out
+						.println("Socket timeout: closing thread. (Transfer may have simply finished)");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Socket error: closing thread.");
 			}
 		}
 	}
