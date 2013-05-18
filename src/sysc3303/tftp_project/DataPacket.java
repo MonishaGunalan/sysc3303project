@@ -5,7 +5,6 @@ import java.io.ByteArrayOutputStream;
 public class DataPacket extends Packet {
 	static final protected int opCode = 4;
 	static final protected int maxDataLength = 512;
-	static final protected int headerLength = 4;
 	protected int blockNumber = 0;
 	protected byte[] data = null;
 	protected int dataLength = 0;
@@ -74,13 +73,12 @@ public class DataPacket extends Packet {
 				|| dataLength > maxDataLength || blockNumber < 0) {
 			throw new IllegalArgumentException();
 		}
-		byte[] gData = new byte[dataLength + headerLength];
-		gData[0] = 0;
-		gData[1] = opCode;
-		gData[2] = (byte) ((short)blockNumber & 0xff);
-		gData[3] = (byte) (((short)blockNumber >> 8) & 0xff);
-		System.arraycopy(gData, headerLength, data, 0, dataLength);
-		return gData;
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		stream.write(0);
+		stream.write(opCode);
+		stream.write(blockNumber >> 8);
+		stream.write(blockNumber);
+		return stream.toByteArray();
 	}
 
 	/**
@@ -94,7 +92,17 @@ public class DataPacket extends Packet {
 	 */
 	@Override
 	public String generateString() throws InvalidPacketException {
-		// TODO Auto-generated method stub
-		return null;
+		// TODO print header as ints and data as hexadecimal code
+		StringBuilder str = new StringBuilder();
+		str.append(0);
+		str.append((byte) opCode);
+		str.append((byte) (blockNumber >> 8));
+		str.append((byte) blockNumber);
+		
+		for ( byte b:data ) {
+			str.append(String.format("%x", b));
+		}
+		
+		return str.toString();
 	}
 }

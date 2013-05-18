@@ -1,138 +1,135 @@
 package sysc3303.tftp_project;
 
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-/**
- * 
- */
+import java.util.Scanner;
 
 /**
- * @author korey
- *
+ * @author Korey Conway (100838924)
+ * @author Monisha
+ * @author Arzaan
  */
 public class ErrorSimulator {
-	protected int proxyPort = 68;
-	protected int serverPort = 69;
-	protected DatagramSocket receiveSocket, sendReceiveSocket;
-	protected boolean isConnected;
 	protected InetAddress serverAddress;
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args)
-	{
-		new ErrorSimulator().run();
-	}
+	protected boolean stopping = false;
 
 	/**
 	 * Constructor
 	 */
-	public ErrorSimulator()
-	{}
-	
-	/**
-	 * Create sockets and bind to needed ports
-	 */
-	public void connect()
-	{
+	public ErrorSimulator() {
 		try {
-			System.out.println("Proxy connecting on " + InetAddress.getLocalHost().getHostAddress() + ":" + proxyPort);
-			receiveSocket = new DatagramSocket(proxyPort, InetAddress.getLocalHost());
-			sendReceiveSocket = new DatagramSocket();
 			serverAddress = InetAddress.getLocalHost();
-			isConnected = true;
-		} catch (SocketException e) {
-			e.printStackTrace();
+			new RequestReceiveThread().start();
 		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
 	/**
-	 * Turn the server on and wait for packets to be received
+	 * @param args
 	 */
-	public void run()
-	{
-		if ( !isConnected ) {
-			connect();
-		}
-		
-		while(true) forward();
-	}
-	
-	/**
-	 * Forward packets
-	 */
-	public void forward()
-	{
-		try {
-			byte data[] = new byte[100];
-			DatagramPacket dp = new DatagramPacket(data, data.length);
-			InetAddress clientAddress;
-			int clientPort;
-			
-			// Receive packet from client
-			receiveSocket.receive(dp);
-			clientAddress = dp.getAddress();
-			clientPort = dp.getPort();
-			
-			System.out.println("Proxy forwarding request from " + clientAddress + ":" + clientPort);
-			System.out.println("Request bytes: " + dp.getData());
-			System.out.println("Request string: " + RequestPacket.CreateFromBytes(dp.getData(), dp.getLength()).generateString());
-			System.out.println();
-			
-			// Forward packet to server
-			dp = new DatagramPacket(dp.getData(), dp.getLength(), serverAddress, serverPort);
-			sendReceiveSocket.send(dp);
-			
-			// Receive response from server
-			data = new byte[100];
-			dp = new DatagramPacket(data, data.length);
-			sendReceiveSocket.receive(dp);
+	public static void main(String[] args) {
+		ErrorSimulator errorSimulator = new ErrorSimulator();
+		Scanner scanner = new Scanner(System.in);
 
-			System.out.println("Proxy received response from server");
-			System.out.println("Response bytes: " + dp.getData());
-			System.out.print("Response string: ");
-			data = dp.getData();
-			int dataLength = dp.getLength();
-			for (int i = 0; i < dataLength; i++) {
-				System.out.print(data[i]);
+		while (true) {
+			System.out.print("Command: ");
+			String command = scanner.nextLine();
+
+			// Continue if blank line was passed
+			if (command.length() == 0) {
+				continue;
 			}
-			System.out.println();
-			System.out.println();
 
-			// Forward response to client
-			dp = new DatagramPacket(dp.getData(), dp.getLength(), clientAddress, clientPort);
-			sendReceiveSocket.send(dp);
+			if (command.equals("help")) {
+				System.out.println("Available commands:");
+				System.out.println("    help: prints this help menu");
+				System.out
+						.println("    stop: stop the server (when current transfers finish)");
+			} else if (command.equals("stop")) {
+				System.out
+						.println("Stopping server (when current transfers finish)");
+				errorSimulator.stop();
+			} else {
+				System.out
+						.println("Invalid command. These are the available commands:");
+				System.out.println("    help: prints this help menu");
+				System.out
+						.println("    stop: stop the error simulator (when current transfers finish)");
+			}
+		}
+	}
+
+	public void stop() {
+		stopping = true;
+	}
+
+	protected class RequestReceiveThread extends Thread {
+		protected int listenPort = 6800;
+		protected DatagramSocket socket;
+		protected static final int maxPacketSize = 100;
+
+		public RequestReceiveThread() {
+			try {
+				socket = new DatagramSocket(listenPort);
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		public void run() {
+			try {
+				while (!stopping) {
+					byte[] data = new byte[maxPacketSize];
+					DatagramPacket dp = new DatagramPacket(data, data.length);
+					socket.receive(dp);
+					new ForwardThread(dp).start();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+	protected class ForwardThread extends Thread {
+		protected DatagramSocket serverSocket, clientSocket;
+		protected int timeoutMs = 10000;
+		protected DatagramPacket requestPacket;
+		protected int serverPort = 6900;
+
+		ForwardThread(DatagramPacket requestPacket) {
+			try {
+				this.requestPacket = requestPacket;
+				clientSocket = new DatagramSocket(requestPacket.getPort());
+				clientSocket.setSoTimeout(timeoutMs);
+				serverSocket = new DatagramSocket();
+				serverSocket.setSoTimeout(timeoutMs);
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		public void run() {
+			// send to server
+			DatagramPacket dp = new DatagramPacket(requestPacket.getData(), requestPacket.getLength(), serverAddress, serverPort);
 			
-		} catch (IOException e) {
-			e.printStackTrace();
-		}		
+			// start loop
+			
+			// wait for response from server
+			
+			// send response to client
+			
+			// wait for response from client
+			
+			// loop
+		}
 	}
-
-	/**
-	 * Disconnect sockets
-	 */
-	public void disconnect()
-	{
-		System.out.println("Proxy disconnecting");
-		receiveSocket.close();
-		sendReceiveSocket.close();
-		isConnected = false;
-	}
-
-	/**
-	 * Destructor, disconnects sockets
-	 */
-	public void finalize()
-	{
-		disconnect();
-	}
-
 }
