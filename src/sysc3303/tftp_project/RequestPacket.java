@@ -7,6 +7,7 @@ public class RequestPacket extends Packet {
 	protected String filename = ""; // filename of the file to be transferred
 	protected Action action; // the action (read or write)
 	protected Mode mode; // transfer mode (ascii or octet)
+	public static int maxPacketSize = 100;
 
 	// Types of actions for the request
 	public enum Action {

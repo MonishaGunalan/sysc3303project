@@ -74,7 +74,6 @@ public class ErrorSimulator {
 
 	protected class RequestReceiveThread extends Thread {
 		protected DatagramSocket socket;
-		protected static final int maxPacketSize = 100;
 
 		public RequestReceiveThread() {
 			try {
@@ -88,7 +87,7 @@ public class ErrorSimulator {
 		public void run() {
 			try {
 				while (!stopping) {
-					byte[] data = new byte[maxPacketSize];
+					byte[] data = new byte[RequestPacket.maxPacketSize];
 					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
 					new ForwardThread(dp).start();

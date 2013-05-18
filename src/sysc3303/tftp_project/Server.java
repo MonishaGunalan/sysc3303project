@@ -78,7 +78,6 @@ public class Server {
 
 	protected class RequestListenerThread extends Thread {
 		protected DatagramSocket socket;
-		protected static final int maxPacketSize = 100;
 
 		public RequestListenerThread(int boundPort) {
 			try {
@@ -92,7 +91,7 @@ public class Server {
 		@Override
 		public void run() {
 			while (!stopping) {
-				byte[] data = new byte[maxPacketSize];
+				byte[] data = new byte[RequestPacket.maxPacketSize];
 				DatagramPacket dp = new DatagramPacket(data, data.length);
 				try {
 					socket.receive(dp);
