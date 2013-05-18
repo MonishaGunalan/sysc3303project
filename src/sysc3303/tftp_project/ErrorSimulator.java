@@ -56,7 +56,7 @@ public class ErrorSimulator {
 				System.out.println("Available commands:");
 				System.out.println("    help: prints this help menu");
 				System.out
-						.println("    stop: stop the server (when current transfers finish)");
+						.println("    stop: stop the error simulator (when current transfers finish)");
 			} else if (command.equals("stop")) {
 				System.out
 						.println("Stopping simulator (when current transfers finish)");
@@ -153,29 +153,39 @@ public class ErrorSimulator {
 				clientPort = requestPacket.getPort();
 
 				// Send request to server
+				System.out.println("Sending request to server");
 				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
 						requestPacket.getLength(), serverAddress,
 						serverRequestPort);
 				socket.send(dp);
 
 				// Receive from server
+				System.out.println("Receiving request from server");
 				dp = Packet.createDatagramForReceiving();
 				socket.receive(dp);
 				serverPort = dp.getPort();
 
 				while (true) {
 					// Forward to client
+					System.out.println("Forwarding packet to client");
 					dp = new DatagramPacket(dp.getData(), dp.getLength(),
 							clientAddress, clientPort);
 					socket.send(dp);
 
 					// Wait for response from client
+					System.out.println("Waiting to get packet from client");
 					dp = Packet.createDatagramForReceiving();
 					socket.receive(dp);
 
 					// Forward to server
+					System.out.println("Forwarding packet to server");
 					dp = new DatagramPacket(dp.getData(), dp.getLength(),
 							serverAddress, serverPort);
+					socket.send(dp);
+
+					// Receive from server
+					System.out.println("Waiting to get packet from server");
+					dp = Packet.createDatagramForReceiving();
 					socket.receive(dp);
 				}
 			} catch (SocketTimeoutException e) {

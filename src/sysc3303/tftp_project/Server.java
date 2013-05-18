@@ -68,6 +68,8 @@ public class Server {
 				System.out.println("    help: prints this help menu");
 				System.out
 						.println("    stop: stop the server (when current transfers finish)");
+				System.out
+						.println("    pwd: prints out the public directory for file transfers");
 			}
 		}
 	}
