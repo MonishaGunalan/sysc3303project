@@ -161,13 +161,13 @@ public class Server {
 
 				while (!isLastDataPacket) {
 					// Read file in 512 byte chunks
-					int bytesRead = fs.read(data, (blockNumber - 1)
-							* maxDataSize, maxDataSize);
-					isLastDataPacket = (bytesRead == maxDataSize);
+					int bytesRead = fs.read(data);
+					isLastDataPacket = (bytesRead < maxDataSize);
 
 					if (bytesRead == -1) {
 						// Special case when file size is multiple of 512 bytes
 						bytesRead = 0;
+						data = new byte[0];
 					}
 
 					// Send data packet
