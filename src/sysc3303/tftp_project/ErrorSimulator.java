@@ -11,10 +11,9 @@ import java.util.Scanner;
 
 /**
  * @author Korey Conway (100838924)
- * @author Monisha (100871444)
- * @author Arzaan (100826631)
+ * @author Monisha
+ * @author Arzaan
  */
-
 public class ErrorSimulator {
 	protected InetAddress serverAddress;
 	protected int serverRequestPort = 6900;
@@ -76,7 +75,6 @@ public class ErrorSimulator {
 
 	protected class RequestReceiveThread extends Thread {
 		protected DatagramSocket socket;
-		protected static final int maxPacketSize = 100;
 
 		public RequestReceiveThread() {
 			try {
@@ -90,7 +88,7 @@ public class ErrorSimulator {
 		public void run() {
 			try {
 				while (!stopping) {
-					byte[] data = new byte[maxPacketSize];
+					byte[] data = new byte[RequestPacket.maxPacketSize];
 					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
 					new ForwardThread(dp).start();
@@ -110,21 +108,7 @@ public class ErrorSimulator {
 		protected int clientPort, serverPort;
 
 		ForwardThread(DatagramPacket requestPacket) {
-<<<<<<< HEAD
-			try {
-				this.requestPacket = requestPacket;
-				clientSocket = new DatagramSocket(requestPacket.getPort());
-				clientSocket.setSoTimeout(timeoutMs);
-				serverSocket = new DatagramSocket();
-				serverSocket.setSoTimeout(timeoutMs);
-
-			} catch (SocketException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-=======
 			this.requestPacket = requestPacket;
->>>>>>> 3d0953c2bffcc5a4354f299d87d545c95c989dd4
 		}
 
 		public void run() {
@@ -138,11 +122,7 @@ public class ErrorSimulator {
 				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
 						requestPacket.getLength(), serverAddress,
 						serverRequestPort);
-<<<<<<< HEAD
-				serverSocket.send(dp);
-=======
 				socket.send(dp);
->>>>>>> 3d0953c2bffcc5a4354f299d87d545c95c989dd4
 
 				// Receive from server
 				dp = Packet.createDatagramForReceiving();
