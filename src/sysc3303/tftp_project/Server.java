@@ -195,7 +195,6 @@ public class Server {
 		public void runReadRequest() {
 			try {
 				FileInputStream fs = new FileInputStream(filePath);
-				byte[] data = new byte[maxDataSize];
 				int blockNumber = 1;
 				boolean isLastDataPacket = false;
 				InetAddress toAddress = this.toAddress;
@@ -203,6 +202,7 @@ public class Server {
 
 				while (!isLastDataPacket) {
 					// Read file in 512 byte chunks
+					byte[] data = new byte[maxDataSize];
 					int bytesRead = fs.read(data);
 					isLastDataPacket = (bytesRead < maxDataSize);
 
