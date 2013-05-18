@@ -21,8 +21,7 @@ import java.util.StringTokenizer;
 
 public class Client {
 	protected DatagramSocket socket;
-	protected int errorSimulatorPort = 6800;
-	protected int serverPort = 6900;
+	protected int serverPort = 68;
 	protected RequestPacket.Mode defaultTransferMode = RequestPacket.Mode.ASCII;
 	protected String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
@@ -40,9 +39,9 @@ public class Client {
 		Client c = new Client();
 		c.connect();
 
-		boolean isDone = false;
+		
 		// Perform functions based on the input command from the console
-		while (!isDone) {
+		while (true) {
 			CMD cmd = c.getInput();
 			switch (cmd) {
 			case HELP:{
@@ -57,7 +56,6 @@ public class Client {
 				break;
 			}
 			case STOP: {
-				isDone = true;
 				c.disconnect();
 				System.out.println("Exiting Program");
 				System.exit(0);
