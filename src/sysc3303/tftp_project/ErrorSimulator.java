@@ -15,6 +15,9 @@ import java.util.Scanner;
  */
 public class ErrorSimulator {
 	protected InetAddress serverAddress;
+	protected int serverRequestPort = 6900;
+	protected int clientRequestPort = 6800;
+
 	protected boolean stopping = false;
 
 	/**
@@ -70,13 +73,12 @@ public class ErrorSimulator {
 	}
 
 	protected class RequestReceiveThread extends Thread {
-		protected int listenPort = 6800;
 		protected DatagramSocket socket;
 		protected static final int maxPacketSize = 100;
 
 		public RequestReceiveThread() {
 			try {
-				socket = new DatagramSocket(listenPort);
+				socket = new DatagramSocket(clientRequestPort);
 			} catch (SocketException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -100,9 +102,10 @@ public class ErrorSimulator {
 
 	protected class ForwardThread extends Thread {
 		protected DatagramSocket serverSocket, clientSocket;
-		protected int timeoutMs = 10000;
+		protected int timeoutMs = 10000; // 10 second receive timeout
 		protected DatagramPacket requestPacket;
-		protected int serverPort = 6900;
+		protected InetAddress clientAddress, serverAddress;
+		protected int clientPort, serverPort;
 
 		ForwardThread(DatagramPacket requestPacket) {
 			try {
@@ -111,6 +114,7 @@ public class ErrorSimulator {
 				clientSocket.setSoTimeout(timeoutMs);
 				serverSocket = new DatagramSocket();
 				serverSocket.setSoTimeout(timeoutMs);
+				
 			} catch (SocketException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -118,18 +122,30 @@ public class ErrorSimulator {
 		}
 
 		public void run() {
-			// send to server
-			DatagramPacket dp = new DatagramPacket(requestPacket.getData(), requestPacket.getLength(), serverAddress, serverPort);
-			
-			// start loop
-			
-			// wait for response from server
-			
-			// send response to client
-			
-			// wait for response from client
-			
-			// loop
+			try {
+				// send to server
+				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
+						requestPacket.getLength(), serverAddress, serverRequestPort);
+				serverSocket.send(dp);
+
+				while (true) {
+					// wait for response from server
+					dp = Packet.createDatagramForReceiving();
+					serverSocket.receive(dp);
+
+					// send response to client
+					dp = new DatagramPacket(dp.getData(), dp.getLength(),
+							clientAddress, clientPort);
+					clientSocket.send(dp);
+
+					// wait for response from client
+					dp = Packet.createDatagramForReceiving();
+					clientSocket.receive(dp);
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 }

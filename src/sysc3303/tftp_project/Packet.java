@@ -82,6 +82,11 @@ public abstract class Packet {
 		return new DatagramPacket(data, data.length, destinationAddress,
 				destinationPort);
 	}
+	
+	public static DatagramPacket createDatagramForReceiving()
+	{
+		return new DatagramPacket(new byte[maxLength], maxLength);
+	}
 
 	/**
 	 * Generate the packet data
