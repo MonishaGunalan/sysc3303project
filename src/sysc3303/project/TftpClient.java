@@ -13,6 +13,12 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
+import sysc3303.project.packets.InvalidPacketException;
+import sysc3303.project.packets.TftpAckPacket;
+import sysc3303.project.packets.TftpDataPacket;
+import sysc3303.project.packets.TftpPacket;
+import sysc3303.project.packets.TftpRequestPacket;
+
 /**
  * @author Korey Conway (100838924)
  * @author Monisha (100871444)

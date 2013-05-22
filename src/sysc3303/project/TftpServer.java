@@ -10,6 +10,11 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Scanner;
 
+import sysc3303.project.packets.TftpAckPacket;
+import sysc3303.project.packets.TftpDataPacket;
+import sysc3303.project.packets.TftpPacket;
+import sysc3303.project.packets.TftpRequestPacket;
+
 /**
  * @author Korey Conway (100838924)
  * @author Monisha (100871444)

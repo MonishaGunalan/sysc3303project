@@ -1,4 +1,5 @@
-package sysc3303.project;
+package sysc3303.project.packets;
+
 
 /**
  * @author Korey Conway (100838924)
@@ -30,7 +31,7 @@ public class TftpErrorPacket extends TftpPacket {
 	 * 
 	 * @return the byte array of the packet
 	 * @throws InvalidPacketException
-	 * @see sysc3303.project.TftpPacket#generatePacketData()
+	 * @see sysc3303.project.packets.TftpPacket#generatePacketData()
 	 */
 	@Override
 	public byte[] generateData() throws InvalidPacketException {

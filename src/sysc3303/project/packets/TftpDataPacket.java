@@ -1,7 +1,6 @@
-package sysc3303.project;
+package sysc3303.project.packets;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 
 /**
  * @author Korey Conway (100838924)
@@ -9,9 +8,9 @@ import java.io.IOException;
  * @author Arzaan (100826631)
  */
 
-class TftpDataPacket extends TftpPacket {
-	static final int OP_CODE = 4; // the TFTP op code for a data packet
-	static final int MAX_FILE_DATA_LENGTH = 512; // the maximum file data length
+public class TftpDataPacket extends TftpPacket {
+	private static final int OP_CODE = 4; // the TFTP op code for a data packet
+	private static final int MAX_FILE_DATA_LENGTH = 512; // the maximum file data length
 													// that can be transmitted
 													// in a single TFTP data
 													// packet
@@ -68,7 +67,7 @@ class TftpDataPacket extends TftpPacket {
 	 * 
 	 * @return the data byte array
 	 */
-	byte[] getFileData() {
+	public byte[] getFileData() {
 		return fileData;
 	}
 
@@ -77,7 +76,7 @@ class TftpDataPacket extends TftpPacket {
 	 * 
 	 * @return
 	 */
-	int getBlockNumber() {
+	public int getBlockNumber() {
 		return blockNumber;
 	}
 
@@ -86,7 +85,7 @@ class TftpDataPacket extends TftpPacket {
 	 * 
 	 * @return true if it is the last data packet, false otherwise
 	 */
-	boolean isLastDataPacket() {
+	public boolean isLastDataPacket() {
 		return (fileData.length < MAX_FILE_DATA_LENGTH);
 	}
 
@@ -101,8 +100,8 @@ class TftpDataPacket extends TftpPacket {
 	 * @return
 	 * @throws InvalidPacketException
 	 */
-	static TftpDataPacket createFromBytes(byte[] packetData,
-			int packetLength) throws InvalidPacketException {
+	static TftpDataPacket createFromBytes(byte[] packetData, int packetLength)
+			throws InvalidPacketException {
 		// Make sure we don't have null
 		if (packetData == null) {
 			throw new InvalidPacketException();
@@ -110,7 +109,8 @@ class TftpDataPacket extends TftpPacket {
 
 		// Verify packet length is valid
 		if (packetLength > packetData.length
-				|| packetLength < PACKET_HEADER_LENGTH || packetLength > TftpPacket.MAX_LENGTH) {
+				|| packetLength < PACKET_HEADER_LENGTH
+				|| packetLength > TftpPacket.MAX_LENGTH) {
 			throw new InvalidPacketException();
 		}
 
@@ -132,22 +132,17 @@ class TftpDataPacket extends TftpPacket {
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @throws InvalidPacketException
-	 * @see sysc3303.project.TftpPacket#generatePacketData()
+	 * @see sysc3303.project.packets.TftpPacket#generateData()
 	 */
 	@Override
-	byte[] generateData() throws InvalidPacketException {
-		try {
-			ByteArrayOutputStream stream = new ByteArrayOutputStream();
-			stream.write(0);
-			stream.write(OP_CODE);
-			stream.write(blockNumber >> 8);
-			stream.write(blockNumber);
-			stream.write(fileData);
-			return stream.toByteArray();
-		} catch (IOException e) {
-			throw new InvalidPacketException();
-		}
+	public byte[] generateData() {
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		stream.write(0);
+		stream.write(OP_CODE);
+		stream.write(blockNumber >> 8);
+		stream.write(blockNumber);
+		stream.write(fileData, 0, fileData.length);
+		return stream.toByteArray();
 	}
 
 	/**
@@ -155,12 +150,10 @@ class TftpDataPacket extends TftpPacket {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @throws InvalidPacketException
-	 *             ;
-	 * @see sysc3303.project.TftpPacket#generatePacketString()
+	 * @see sysc3303.project.packets.TftpPacket#toString()
 	 */
 	@Override
-	String generateString() throws InvalidPacketException {
+	public String toString() {
 		StringBuilder str = new StringBuilder();
 
 		// Header bytes shown as integers

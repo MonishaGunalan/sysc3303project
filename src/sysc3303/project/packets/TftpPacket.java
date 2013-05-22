@@ -1,10 +1,10 @@
-package sysc3303.project;
+package sysc3303.project.packets;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
-import sysc3303.project.TftpRequestPacket.Action;
-import sysc3303.project.TftpRequestPacket.Mode;
+import sysc3303.project.packets.TftpRequestPacket.Action;
+import sysc3303.project.packets.TftpRequestPacket.Mode;
 
 /**
  * @author Korey Conway (100838924)
@@ -15,7 +15,7 @@ import sysc3303.project.TftpRequestPacket.Mode;
 abstract class TftpPacket {
 	static final int MAX_LENGTH = 516;
 
-	enum Type {
+	public enum Type {
 		RRQ, WRQ, DATA, ACK, ERROR
 	}
 
@@ -26,7 +26,7 @@ abstract class TftpPacket {
 	 * 
 	 * @return the type of packet
 	 */
-	Type getType() {
+	public Type getType() {
 		return type;
 	}
 
@@ -37,7 +37,7 @@ abstract class TftpPacket {
 	 *            filename of the file to be read
 	 * @return a read RequestPacket
 	 */
-	static TftpRequestPacket createReadRequest(String filename, Mode mode) {
+	public static TftpRequestPacket createReadRequest(String filename, Mode mode) {
 		return new TftpRequestPacket(filename, Action.READ, mode);
 	}
 
@@ -48,7 +48,8 @@ abstract class TftpPacket {
 	 *            filename of the file to be written
 	 * @return a write RequestPacket
 	 */
-	static TftpRequestPacket createWriteRequest(String filename, Mode mode) {
+	public static TftpRequestPacket createWriteRequest(String filename,
+			Mode mode) {
 		return new TftpRequestPacket(filename, Action.WRITE, mode);
 	}
 
@@ -59,7 +60,7 @@ abstract class TftpPacket {
 	 *            block number of the ack
 	 * @return an TftpAckPacket
 	 */
-	static TftpAckPacket createAckPacket(int blockNumber) {
+	public static TftpAckPacket createAckPacket(int blockNumber) {
 		return new TftpAckPacket(blockNumber);
 	}
 
@@ -74,12 +75,12 @@ abstract class TftpPacket {
 	 *            length of the data that is valid in data
 	 * @return a TftpDataPacket
 	 */
-	static TftpDataPacket createDataPacket(int blockNumber, byte[] data,
+	public static TftpDataPacket createDataPacket(int blockNumber, byte[] data,
 			int dataLength) {
 		return new TftpDataPacket(blockNumber, data, dataLength);
 	}
 
-	static void CreateErrorPacket() {
+	public static void CreateErrorPacket() {
 		// TODO
 	}
 
@@ -90,7 +91,7 @@ abstract class TftpPacket {
 	 * @return
 	 * @throws InvalidPacketException
 	 */
-	static TftpPacket createFromDatagram(DatagramPacket datagram)
+	public static TftpPacket createFromDatagram(DatagramPacket datagram)
 			throws InvalidPacketException {
 		return TftpPacket.createFromBytes(datagram.getData(),
 				datagram.getLength());
@@ -99,48 +100,33 @@ abstract class TftpPacket {
 	/**
 	 * Create a TFTP packet from the given data.
 	 * 
-	 * @param data
-	 * @param dataLength
+	 * @param packetData
+	 * @param packetLength
 	 * @return
 	 * @throws InvalidPacketException
 	 */
-	private static TftpPacket createFromBytes(byte[] data, int dataLength)
+	private static TftpPacket createFromBytes(byte[] packetData, int packetLength)
 			throws InvalidPacketException {
 
-		if (data[0] != 0) {
+		if (packetData[0] != 0) {
 			throw new InvalidPacketException();
 		}
 
-		switch (data[1]) {
+		switch (packetData[1]) {
 		case 1:
-			return TftpRequestPacket.createFromBytes(data, dataLength);
+			return TftpRequestPacket.createFromBytes(packetData, packetLength);
 		case 2:
-			return TftpRequestPacket.createFromBytes(data, dataLength);
+			return TftpRequestPacket.createFromBytes(packetData, packetLength);
 		case 3:
-			return TftpAckPacket.createFromBytes(data, dataLength);
+			return TftpAckPacket.createFromBytes(packetData, packetLength);
 		case 4:
-			return TftpDataPacket.createFromBytes(data, dataLength);
+			return TftpDataPacket.createFromBytes(packetData, packetLength);
 		case 5:
-			return null; // TODO TftpErrorPacket.createFromBytes(data, dataLength);
+			return null; // TODO TftpErrorPacket.createFromBytes(data,
+							// dataLength);
 		default:
 			throw new InvalidPacketException();
 		}
-	}
-
-	/**
-	 * Generate a UDP datagram packet from the current data. This is a
-	 * convenience method.
-	 * 
-	 * @param destinationAddress
-	 * @param destinationPort
-	 * @return a DatagramPacket ready to be sent through a socket
-	 * @throws InvalidPacketException
-	 */
-	DatagramPacket generateDatagram(InetAddress destinationAddress,
-			int destinationPort) throws InvalidPacketException {
-		byte data[] = this.generateData();
-		return new DatagramPacket(data, data.length, destinationAddress,
-				destinationPort);
 	}
 
 	/**
@@ -155,12 +141,29 @@ abstract class TftpPacket {
 	}
 
 	/**
-	 * Generate the packet data. Must be implemented by extending classes.
+	 * Generate a UDP datagram packet from the current data. This is a
+	 * convenience method.
+	 * 
+	 * @param destinationAddress
+	 * @param destinationPort
+	 * @return a DatagramPacket ready to be sent through a socket
+	 * @throws InvalidPacketException
+	 */
+	public DatagramPacket generateDatagram(InetAddress destinationAddress,
+			int destinationPort) throws InvalidPacketException {
+		byte data[] = this.generateData();
+		return new DatagramPacket(data, data.length, destinationAddress,
+				destinationPort);
+	}
+
+	/**
+	 * Generate the packet data used for the DatagramPacket. Must be implemented
+	 * by extending classes.
 	 * 
 	 * @return the byte array of the packet
 	 * @throws InvalidPacketException
 	 */
-	abstract byte[] generateData() throws InvalidPacketException;
+	public abstract byte[] generateData();
 
 	/**
 	 * Convert the request into a visual packet string (for debugging/logging
@@ -169,11 +172,11 @@ abstract class TftpPacket {
 	 * @return a string representation of the packet
 	 * @throws InvalidPacketException
 	 */
-	String generateString() {
+	public String toString() {
 		byte[] packetBytes = this.generateData();
 		StringBuilder packetString = new StringBuilder(4);
 		for (byte b : packetBytes) {
-			packetString.append((int) b);
+			packetString.append(String.format("%x", b));
 		}
 		return packetString.toString();
 	}

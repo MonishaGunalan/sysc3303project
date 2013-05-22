@@ -1,4 +1,4 @@
-package sysc3303.project;
+package sysc3303.project.packets;
 
 /**
  * @author Korey Conway (100838924)
