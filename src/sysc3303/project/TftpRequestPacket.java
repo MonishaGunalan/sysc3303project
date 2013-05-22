@@ -1,4 +1,4 @@
-package sysc3303.tftp_project;
+package sysc3303.project;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -9,31 +9,32 @@ import java.io.IOException;
  * @author Arzaan (100826631)
  */
 
-public class RequestPacket extends Packet {
-	protected String filename = ""; // filename of the file to be transferred
-	protected Action action; // the action (read or write)
-	protected Mode mode; // transfer mode (ascii or octet)
-	public static int maxPacketSize = 100;
+class TftpRequestPacket extends TftpPacket {
+	static int MAX_LENGTH = 100;
 
 	// Types of actions for the request
-	public enum Action {
+	enum Action {
 		READ, WRITE
 	}
 
 	// Option for the mode of transfer
-	public enum Mode {
+	enum Mode {
 		ASCII, OCTET
 	}
+
+	private String filename = ""; // filename of the file to be transferred
+	private Action action; // the action (read or write)
+	private Mode mode; // transfer mode (ascii or octet)
 
 	/**
 	 * Constructor
 	 * 
-	 * @param action
 	 * @param filename
+	 * @param action
 	 * @param mode
 	 * @throws IllegalArgumentException
 	 */
-	public RequestPacket(Action action, String filename, Mode mode)
+	TftpRequestPacket(String filename, Action action, Mode mode)
 			throws IllegalArgumentException {
 		if (action == null || filename == null || filename.length() == 0
 				|| mode == null) {
@@ -45,11 +46,21 @@ public class RequestPacket extends Packet {
 		this.type = (action == Action.READ) ? Type.RRQ : Type.WRQ;
 	}
 
-	public String getFilename() {
+	/**
+	 * Get the filename for the request
+	 * 
+	 * @return
+	 */
+	String getFilename() {
 		return filename;
 	}
 
-	public boolean isReadRequest() {
+	/**
+	 * Check if this is a read request.
+	 * 
+	 * @return true if read request, false if write request
+	 */
+	boolean isReadRequest() {
 		return (action == Action.READ);
 	}
 
@@ -63,7 +74,7 @@ public class RequestPacket extends Packet {
 	 * @return
 	 * @throws InvalidPacketException
 	 */
-	public static RequestPacket CreateFromBytes(byte[] data, int dataLength)
+	static TftpRequestPacket createFromBytes(byte[] data, int dataLength)
 			throws InvalidPacketException {
 		// Assume valid until we find an error
 		Action action;
@@ -119,17 +130,17 @@ public class RequestPacket extends Packet {
 		}
 
 		// Create a RequestPacket
-		return new RequestPacket(action, filename, mode);
+		return new TftpRequestPacket(filename, action, mode);
 	}
 
 	/**
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @see sysc3303.project.Packet#generatePacketData()
+	 * @see sysc3303.TftpPacket.Packet#generatePacketData()
 	 */
 	@Override
-	public byte[] generateData() {
+	byte[] generateData() {
 		try {
 			// Form the byte array
 			ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -165,10 +176,10 @@ public class RequestPacket extends Packet {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @see sysc3303.project.Packet#generatePacketString()
+	 * @see sysc3303.TftpPacket.Packet#generatePacketString()
 	 */
 	@Override
-	public String generateString() {
+	String generateString() {
 		StringBuilder packetStr = new StringBuilder();
 
 		packetStr.append(0); // Always start with 0

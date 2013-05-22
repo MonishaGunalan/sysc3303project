@@ -1,4 +1,4 @@
-package sysc3303.tftp_project;
+package sysc3303.project;
 
 /**
  * @author Korey Conway (100838924)
@@ -6,7 +6,7 @@ package sysc3303.tftp_project;
  * @author Arzaan (100826631)
  */
 
-public class AckPacket extends Packet {
+public class TftpAckPacket extends TftpPacket {
 	static final protected int opCode = 3;
 	protected int blockNumber = 0;
 
@@ -17,7 +17,7 @@ public class AckPacket extends Packet {
 	 *            for the packet
 	 * @throws IllegalArgumentException
 	 */
-	public AckPacket(int blockNumber) throws IllegalArgumentException {
+	public TftpAckPacket(int blockNumber) throws IllegalArgumentException {
 		if (blockNumber < 0) {
 			throw new IllegalArgumentException();
 		}
@@ -32,7 +32,7 @@ public class AckPacket extends Packet {
 	 * @param dataLength
 	 * @return the byte array of the packet
 	 */
-	public static AckPacket CreateFromBytes(byte[] data, int dataLength)
+	public static TftpAckPacket CreateFromBytes(byte[] data, int dataLength)
 			throws InvalidPacketException {
 		try {
 			if (data == null || data.length < 4 || data[0] != 0
@@ -41,7 +41,7 @@ public class AckPacket extends Packet {
 			}
 
 			int blockNumber = (data[2] << 8) + data[3];
-			return new AckPacket(blockNumber);
+			return new TftpAckPacket(blockNumber);
 		} catch (Exception e) {
 			throw new InvalidPacketException();
 		}
@@ -61,7 +61,7 @@ public class AckPacket extends Packet {
 	 * 
 	 * @return the byte array of the packet
 	 * @throws InvalidPacketException
-	 * @see sysc3303.tftp_project.Packet#generatePacketData()
+	 * @see sysc3303.project.TftpPacket#generatePacketData()
 	 */
 	@Override
 	public byte[] generateData() throws InvalidPacketException {

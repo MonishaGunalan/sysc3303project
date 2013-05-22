@@ -1,4 +1,4 @@
-package sysc3303.tftp_project;
+package sysc3303.project;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -14,7 +14,7 @@ import java.util.Scanner;
  * @author Monisha (100871444)
  * @author Arzaan (100826631)
  */
-public class ErrorSimulator {
+public class TftpErrorSimulator {
 	protected InetAddress serverAddress;
 	protected int serverRequestPort = 69;
 	protected int clientRequestPort = 68;
@@ -25,7 +25,7 @@ public class ErrorSimulator {
 	/**
 	 * Constructor
 	 */
-	public ErrorSimulator() {
+	public TftpErrorSimulator() {
 		try {
 			serverAddress = InetAddress.getLocalHost();
 			requestReceive = new RequestReceiveThread();
@@ -40,7 +40,7 @@ public class ErrorSimulator {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		ErrorSimulator errorSimulator = new ErrorSimulator();
+		TftpErrorSimulator errorSimulator = new TftpErrorSimulator();
 		Scanner scanner = new Scanner(System.in);
 
 		while (true) {
@@ -115,7 +115,7 @@ public class ErrorSimulator {
 				incrementThreadCount();
 
 				while (!socket.isClosed()) {
-					byte[] data = new byte[RequestPacket.maxPacketSize];
+					byte[] data = new byte[TftpRequestPacket.MAX_LENGTH];
 					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
 					new ForwardThread(dp).start();
@@ -161,7 +161,7 @@ public class ErrorSimulator {
 
 				// Receive from server
 				System.out.println("Receiving request from server");
-				dp = Packet.createDatagramForReceiving();
+				dp = TftpPacket.createDatagramForReceiving();
 				socket.receive(dp);
 				serverPort = dp.getPort();
 
@@ -174,7 +174,7 @@ public class ErrorSimulator {
 
 					// Wait for response from client
 					System.out.println("Waiting to get packet from client");
-					dp = Packet.createDatagramForReceiving();
+					dp = TftpPacket.createDatagramForReceiving();
 					socket.receive(dp);
 
 					// Forward to server
@@ -185,7 +185,7 @@ public class ErrorSimulator {
 
 					// Receive from server
 					System.out.println("Waiting to get packet from server");
-					dp = Packet.createDatagramForReceiving();
+					dp = TftpPacket.createDatagramForReceiving();
 					socket.receive(dp);
 				}
 			} catch (SocketTimeoutException e) {

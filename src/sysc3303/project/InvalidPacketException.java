@@ -1,4 +1,4 @@
-package sysc3303.tftp_project;
+package sysc3303.project;
 
 /**
  * @author Korey Conway (100838924)

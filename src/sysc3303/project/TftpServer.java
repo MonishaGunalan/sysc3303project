@@ -1,4 +1,4 @@
-package sysc3303.tftp_project;
+package sysc3303.project;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -15,7 +15,7 @@ import java.util.Scanner;
  * @author Monisha (100871444)
  * @author Arzaan (100826631)
  */
-public class Server {
+public class TftpServer {
 	protected static final int listenPort = 69;
 	protected String publicFolder = System.getProperty("user.dir")
 			+ "/server_files/";
@@ -25,7 +25,7 @@ public class Server {
 	/**
 	 * Constructor
 	 */
-	public Server() {
+	public TftpServer() {
 		requestListener = new RequestListenerThread(listenPort);
 		requestListener.start();
 	}
@@ -36,7 +36,7 @@ public class Server {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		Server server = new Server();
+		TftpServer server = new TftpServer();
 		Scanner scanner = new Scanner(System.in);
 
 		while (true) {
@@ -128,14 +128,14 @@ public class Server {
 				incrementThreadCount();
 
 				while (!socket.isClosed()) {
-					byte[] data = new byte[RequestPacket.maxPacketSize];
+					byte[] data = new byte[TftpRequestPacket.MAX_LENGTH];
 					DatagramPacket dp = new DatagramPacket(data, data.length);
 					socket.receive(dp);
-					Packet packet = Packet.CreateFromBytes(dp.getData(),
+					TftpPacket packet = TftpPacket.CreateFromBytes(dp.getData(),
 							dp.getLength());
-					if (packet instanceof RequestPacket) {
+					if (packet instanceof TftpRequestPacket) {
 						TransferThread tt = new TransferThread(
-								(RequestPacket) packet, dp.getAddress(),
+								(TftpRequestPacket) packet, dp.getAddress(),
 								dp.getPort());
 						tt.start();
 					} else {
@@ -162,7 +162,7 @@ public class Server {
 		protected InetAddress toAddress;
 		protected static final int maxDataSize = 512;
 
-		public TransferThread(RequestPacket packet, InetAddress toAddress,
+		public TransferThread(TftpRequestPacket packet, InetAddress toAddress,
 				int toPort) {
 			try {
 				socket = new DatagramSocket();
@@ -198,7 +198,7 @@ public class Server {
 				int blockNumber = 1;
 				boolean isLastDataPacket = false;
 				InetAddress toAddress = this.toAddress;
-				Packet pk;
+				TftpPacket pk;
 
 				while (!isLastDataPacket) {
 					// Read file in 512 byte chunks
@@ -215,19 +215,19 @@ public class Server {
 					// Send data packet
 					System.out.printf("Sending block %d of %s%n", blockNumber,
 							filename);
-					DatagramPacket dp = Packet.CreateDataPacket(blockNumber,
+					DatagramPacket dp = TftpPacket.createDataPacket(blockNumber,
 							data, bytesRead)
 							.generateDatagram(toAddress, toPort);
 					socket.send(dp);
 
 					// Wait until we receive correct ack packet
-					data = new byte[Packet.maxLength];
+					data = new byte[TftpPacket.MAX_LENGTH];
 					dp = new DatagramPacket(data, data.length);
 					do {
 						socket.receive(dp);
-						pk = Packet.CreateFromBytes(data, dp.getLength());
-					} while (pk.getType() != Packet.Type.ACK
-							|| ((AckPacket) pk).getBlockNumber() != blockNumber);
+						pk = TftpPacket.CreateFromBytes(data, dp.getLength());
+					} while (pk.getType() != TftpPacket.Type.ACK
+							|| ((TftpAckPacket) pk).getBlockNumber() != blockNumber);
 					toAddress = dp.getAddress(); // This updates in case the
 													// client is using dynamic
 													// IP (not likely needed,
@@ -254,12 +254,12 @@ public class Server {
 				int blockNumber = 0;
 				boolean isLastDataPacket = false;
 				InetAddress toAddress = this.toAddress;
-				Packet pk;
-				DataPacket dataPk;
+				TftpPacket pk;
+				TftpDataPacket dataPk;
 
 				while (true) {
 					// Send ack packet
-					DatagramPacket dp = Packet.CreateAckPacket(blockNumber)
+					DatagramPacket dp = TftpPacket.createAckPacket(blockNumber)
 							.generateDatagram(toAddress, toPort);
 					socket.send(dp);
 					System.out.printf("Sent ack for block %d of %s%n",
@@ -273,22 +273,22 @@ public class Server {
 
 					// Receive data packet
 					do {
-						dp = new DatagramPacket(new byte[Packet.maxLength],
-								Packet.maxLength);
+						dp = new DatagramPacket(new byte[TftpPacket.MAX_LENGTH],
+								TftpPacket.MAX_LENGTH);
 						socket.receive(dp);
-						pk = Packet.CreateFromBytes(dp.getData(),
+						pk = TftpPacket.CreateFromBytes(dp.getData(),
 								dp.getLength());
-					} while (pk.getType() != Packet.Type.DATA
-							|| ((DataPacket) pk).getBlockNumber() != blockNumber);
+					} while (pk.getType() != TftpPacket.Type.DATA
+							|| ((TftpDataPacket) pk).getBlockNumber() != blockNumber);
 
 					System.out.printf("Received block %d of %s%n", blockNumber,
 							filename);
 
 					// Save into file
-					dataPk = (DataPacket) pk;
-					fs.write(dataPk.getData());
+					dataPk = (TftpDataPacket) pk;
+					fs.write(dataPk.getFileData());
 
-					if (dataPk.getDataLength() != maxDataSize) {
+					if (dataPk.getFileDataLength() != maxDataSize) {
 						isLastDataPacket = true;
 					}
 				}

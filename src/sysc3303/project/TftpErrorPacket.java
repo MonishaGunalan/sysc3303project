@@ -1,4 +1,4 @@
-package sysc3303.tftp_project;
+package sysc3303.project;
 
 /**
  * @author Korey Conway (100838924)
@@ -6,7 +6,7 @@ package sysc3303.tftp_project;
  * @author Arzaan (100826631)
  */
 
-public class ErrorPacket extends Packet {
+public class TftpErrorPacket extends TftpPacket {
 	static final protected int opCode = 5;
 	protected int blockNumber = 0;
 
@@ -17,7 +17,7 @@ public class ErrorPacket extends Packet {
 	 *            for the packet
 	 * @throws IllegalArgumentException
 	 */
-	ErrorPacket(int blockNumber) throws IllegalArgumentException {
+	TftpErrorPacket(int blockNumber) throws IllegalArgumentException {
 		if (blockNumber < 0) {
 			throw new IllegalArgumentException();
 		}
@@ -30,7 +30,7 @@ public class ErrorPacket extends Packet {
 	 * 
 	 * @return the byte array of the packet
 	 * @throws InvalidPacketException
-	 * @see sysc3303.tftp_project.Packet#generatePacketData()
+	 * @see sysc3303.project.TftpPacket#generatePacketData()
 	 */
 	@Override
 	public byte[] generateData() throws InvalidPacketException {
