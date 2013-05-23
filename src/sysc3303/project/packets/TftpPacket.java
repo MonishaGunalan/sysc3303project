@@ -12,7 +12,7 @@ import sysc3303.project.packets.TftpRequestPacket.Mode;
  * @author Arzaan (100826631)
  */
 
-abstract class TftpPacket {
+public abstract class TftpPacket {
 	static final int MAX_LENGTH = 516;
 
 	public enum Type {

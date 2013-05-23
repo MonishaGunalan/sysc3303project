@@ -102,7 +102,7 @@ public class TftpClient {
 			e1.printStackTrace();
 		}
 		while (!isWriteDone) {
-
+/************************change this*************************//////
 			// Generate data packets to be sent
 			int packetSize = data.length
 					- ((blockNumber) * TftpDataPacket.MAX_FILE_DATA_LENGTH);
@@ -115,8 +115,8 @@ public class TftpClient {
 			int offset = (blockNumber) * TftpDataPacket.MAX_FILE_DATA_LENGTH;
 			System.arraycopy(data, offset, blockData, 0, blockData.length);
 			blockNumber++;
-
-			sendDataPacket(new TftpDataPacket(blockNumber, blockData,
+			
+			sendDataPacket(TftpPacket.createDataPacket(blockNumber, blockData,
 					blockData.length), port);
 		}
 	}
@@ -141,8 +141,10 @@ public class TftpClient {
 		while (!isReadDone) {
 			DatagramPacket dp = receiveDataPacket();
 			data = dp.getData();
-			TftpDataPacket dataPacket = TftpDataPacket.CreateFromBytes(data,
-					dp.getLength());
+			/***check this ****/
+			TftpPacket dataPacket = TftpPacket.createFromDatagram(dp);
+			//TftpDataPacket dataPacket = TftpDataPacket.CreateFromBytes(data,
+					//dp.getLength());
 			
 			try {
 				fs.write(dataPacket.getFileData());
