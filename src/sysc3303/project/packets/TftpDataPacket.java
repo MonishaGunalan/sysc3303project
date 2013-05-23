@@ -22,6 +22,7 @@ public class TftpDataPacket extends TftpPacket {
 														// minimum length of
 														// data packet)
 
+	private int fileDataLength = 0;
 	private int blockNumber = 0;
 	private byte[] fileData = null; // data byte array from the file being
 									// read/written
@@ -60,6 +61,15 @@ public class TftpDataPacket extends TftpPacket {
 			this.fileData = new byte[fileDataLength];
 			System.arraycopy(fileData, 0, this.fileData, 0, fileDataLength);
 		}
+	}
+	
+	/**
+	 * Get the file data length
+	 * 
+	 * @return the data length
+	 */
+	public int getFileDataLength(){
+		return fileDataLength;
 	}
 
 	/**

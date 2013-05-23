@@ -33,10 +33,10 @@ public class TftpClient {
 			+ "/client_files/";
 
 	private String filename;
-
 	private enum CMD {
 		READ, WRITE, STOP, INVALID, HELP
 	}
+	private static final int MAX_FILE_DATA_LENGTH = 512;
 
 	/**
 	 * @param args
@@ -91,11 +91,11 @@ public class TftpClient {
 	public void writeReq() {
 		boolean isWriteDone = false;
 		int blockNumber = 0;
-		byte[] data = null;
+		byte[] fileData = null;
 		write(filename);
-		int port = receiveResponse();
+		int port = receiveAckPacket();
 		try {
-			data = toByteArray(new File(publicFolder, filename));
+			fileData = readDataFromFile(new File(publicFolder, filename));
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 		} catch (IOException e1) {
@@ -104,16 +104,16 @@ public class TftpClient {
 		while (!isWriteDone) {
 /************************change this*************************//////
 			// Generate data packets to be sent
-			int packetSize = data.length
-					- ((blockNumber) * TftpDataPacket.MAX_FILE_DATA_LENGTH);
+			int packetSize = fileData.length
+					- ((blockNumber) * MAX_FILE_DATA_LENGTH);
 			System.out.println(packetSize);
-			if (packetSize > TftpDataPacket.MAX_FILE_DATA_LENGTH)
-				packetSize = TftpDataPacket.MAX_FILE_DATA_LENGTH;
+			if (packetSize >MAX_FILE_DATA_LENGTH)
+				packetSize = MAX_FILE_DATA_LENGTH;
 			else
 				isWriteDone = true;
 			byte[] blockData = new byte[packetSize];
-			int offset = (blockNumber) * TftpDataPacket.MAX_FILE_DATA_LENGTH;
-			System.arraycopy(data, offset, blockData, 0, blockData.length);
+			int offset = (blockNumber) * MAX_FILE_DATA_LENGTH;
+			System.arraycopy(fileData, offset, blockData, 0, blockData.length);
 			blockNumber++;
 			
 			sendDataPacket(TftpPacket.createDataPacket(blockNumber, blockData,
@@ -130,7 +130,6 @@ public class TftpClient {
 	public void readReq() {
 		boolean isReadDone = false;
 		int blockNumber = 1;
-		byte[] data = null;
 		read(filename);
 		FileOutputStream fs = null;
 		try {
@@ -139,20 +138,15 @@ public class TftpClient {
 			e1.printStackTrace();
 		}
 		while (!isReadDone) {
-			DatagramPacket dp = receiveDataPacket();
-			data = dp.getData();
-			/***check this ****/
-			TftpPacket dataPacket = TftpPacket.createFromDatagram(dp);
-			//TftpDataPacket dataPacket = TftpDataPacket.CreateFromBytes(data,
-					//dp.getLength());
-			
+			DatagramPacket datagramPacket = receiveDataPacket();
+			TftpDataPacket dataPacket =(TftpDataPacket) TftpPacket.createFromDatagram(datagramPacket);
 			try {
 				fs.write(dataPacket.getFileData());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("Length of data packet: " + dataPacket.getFileDataLength());
-			if (dataPacket.getFileDataLength() < TftpDataPacket.MAX_FILE_DATA_LENGTH) {
+			System.out.println("Length of data packet: " +dataPacket.getFileDataLength());
+			if (dataPacket.getFileDataLength() < MAX_FILE_DATA_LENGTH) {
 				isReadDone = true;
 				System.out.println("Last Data packet");
 				try {
@@ -163,7 +157,7 @@ public class TftpClient {
 			}
 			// Send Ack 
 			System.out.println("Sending Ack from client, block#" + blockNumber);
-			sendAckPacket(blockNumber++, dp.getPort());
+			sendAckPacket(blockNumber++, datagramPacket.getPort());
 		}
 	}
 
@@ -219,11 +213,11 @@ public class TftpClient {
 	 * @param destination port
 	 */
 	public void sendAckPacket(int blockNumber, int port) {
-		DatagramPacket dp;
+		DatagramPacket datagramPacket;
 		try {
-			dp = TftpPacket.createAckPacket(blockNumber).generateDatagram(
+			datagramPacket = TftpPacket.createAckPacket(blockNumber).generateDatagram(
 					InetAddress.getLocalHost(), port);
-			socket.send(dp);
+			socket.send(datagramPacket);
 		} catch (InvalidPacketException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
@@ -240,16 +234,16 @@ public class TftpClient {
 	 * @return: Data Packet
 	 */
 	public DatagramPacket receiveDataPacket() {
-		DatagramPacket dp = null;
+		DatagramPacket datagramPacket = null;
 		try {
-			byte data[] = new byte[TftpDataPacket.MAX_LENGTH];
-			dp = new DatagramPacket(data, data.length);
-			socket.receive(dp);
-			System.out.println("Received data packet from server of block " + TftpDataPacket.CreateFromBytes(dp.getData(), dp.getLength()).getBlockNumber());
+			datagramPacket = TftpPacket.createDatagramForReceiving();
+			socket.receive(datagramPacket);
+			TftpDataPacket dataPacket =(TftpDataPacket) TftpPacket.createFromDatagram(datagramPacket);
+			System.out.println("Received data packet from server of block " + dataPacket.getBlockNumber());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return dp;
+		return datagramPacket;
 	}
 
 	/*
@@ -266,27 +260,28 @@ public class TftpClient {
 		System.out.println("Client sending block#: " + packet.getBlockNumber());
 		try {
 			// Create the packet
-			DatagramPacket dp = packet.generateDatagram(
+			DatagramPacket datagramPacket = packet.generateDatagram(
 					InetAddress.getLocalHost(), port);
 
 			// Send the packet
-			socket.send(dp);
+			socket.send(datagramPacket);
 
 			// Receive response
-			port = receiveResponse();
+			port = receiveAckPacket();
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
 		return port;
 	}
 
+	
 	/*
 	 * Read the data from the file and store in in a byte Array
 	 * @param File
 	 * @return byte array
 	 * 
 	 */
-	private byte[] toByteArray(File file) throws IOException {
+	private byte[] readDataFromFile(File file) throws IOException {
 		RandomAccessFile f = new RandomAccessFile(file.getAbsolutePath(), "r");
 		byte[] b = new byte[(int) f.length()];
 		f.read(b);
@@ -305,25 +300,19 @@ public class TftpClient {
 		}
 	}
 	
-	/*
-	 * Disconnect the socket
-	 */
-	public void disconnect() {
-		socket.disconnect();
-	}
-	
+
 	/*
 	 * Create Read request packet and send the request to the server
 	 */
 	public void read(String filename) {
-		sendRequest(TftpRequestPacket.createReadRequest(filename));
+		sendRequest(TftpPacket.createReadRequest(filename,defaultTransferMode));
 	}
 	
 	/*
 	 * Create Write request packet and send the request to the server
 	 */
 	public void write(String filename) {
-		sendRequest(TftpRequestPacket.createWriteRequest(filename));
+		sendRequest(TftpPacket.createWriteRequest(filename, defaultTransferMode));
 	}
 
 	/*
@@ -331,24 +320,20 @@ public class TftpClient {
 	 */
 	public void sendRequest(TftpRequestPacket rq) {
 		try {
-			if (null == rq.mode) {
-				rq.mode = defaultTransferMode;
-			}
 
 			// Convert the request into a byte array
 			byte data[] = rq.generateData();
-			String dataStr = rq.generateString();
+			String dataStr = rq.toString();
 
 			// Log to terminal
 			System.out.println("Client sending (bytes): " + data);
 			System.out.println("Client sending (string): " + dataStr);
 
 			// Create the packet
-			DatagramPacket dp = new DatagramPacket(data, data.length,
-					InetAddress.getLocalHost(), serverPort);
+			DatagramPacket datagramPacket = rq.generateDatagram(InetAddress.getLocalHost(), serverPort);
 
 			// Send the packet
-			socket.send(dp);
+			socket.send(datagramPacket);
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -358,23 +343,23 @@ public class TftpClient {
 	/*
 	 * Receive the Ack packet
 	 */
-	protected int receiveResponse() {
+	protected int receiveAckPacket() {
 		int port = -1;
 		try {
-			byte data[] = new byte[100];
-			DatagramPacket dp = new DatagramPacket(data, data.length);
-			socket.receive(dp);
-			data = dp.getData();
-			int dataLength = dp.getLength();
+			DatagramPacket datagramPacket = TftpPacket.createDatagramForReceiving();
+			socket.receive(datagramPacket);
+			byte[] packetData = datagramPacket.getData();
+			int packetLength = datagramPacket.getLength();
 
 			// Log receipt
-			System.out.println("Client received (bytes): " + dp.getData());
+			System.out.println("Client received (bytes): " + packetData);
 			System.out.print("Client received (string): ");
-			for (int i = 0; i < dataLength; i++) {
-				System.out.print(data[i]);
+			for (int i = 0; i < packetLength; i++) {
+				System.out.print(packetData[i]);
 			}
-			port = dp.getPort();
-			TftpAckPacket ack = TftpAckPacket.CreateFromBytes(data, dataLength);
+			port = datagramPacket.getPort();
+			TftpAckPacket ack = (TftpAckPacket)TftpPacket.createFromDatagram(datagramPacket);
+			//TftpAckPacket ack = TftpAckPacket.CreateFromBytes(packetData, packetLength);
 			System.out.println("\nClient: Received ack block:"
 					+ ack.getBlockNumber());
 
@@ -383,5 +368,13 @@ public class TftpClient {
 		}
 		return port;
 	}
+	
+	/*
+	 * Disconnect the socket
+	 */
+	public void disconnect() {
+		socket.disconnect();
+	}
+	
 
 }
