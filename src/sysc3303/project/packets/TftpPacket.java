@@ -14,6 +14,7 @@ import sysc3303.project.packets.TftpRequestPacket.Mode;
 
 public abstract class TftpPacket {
 	static final int MAX_LENGTH = 516;
+	private static final int MIN_LENGTH = 4;
 
 	public enum Type {
 		RRQ, WRQ, DATA, ACK, ERROR
@@ -106,10 +107,15 @@ public abstract class TftpPacket {
 	 * @throws InvalidPacketException
 	 */
 	private static TftpPacket createFromBytes(byte[] packetData, int packetLength)
-			throws InvalidPacketException {
+			throws IllegalArgumentException {
+		// Check that the packet length makes sense and is long enough
+		if (packetData.length < packetLength || packetLength < MIN_LENGTH) {
+			throw new IllegalArgumentException();
+		}
 
+		// First should always be 0
 		if (packetData[0] != 0) {
-			throw new InvalidPacketException();
+			throw new IllegalArgumentException();
 		}
 
 		switch (packetData[1]) {
@@ -125,7 +131,7 @@ public abstract class TftpPacket {
 			return null; // TODO TftpErrorPacket.createFromBytes(data,
 							// dataLength);
 		default:
-			throw new InvalidPacketException();
+			throw new IllegalArgumentException();
 		}
 	}
 
@@ -136,7 +142,7 @@ public abstract class TftpPacket {
 	 * 
 	 * @return a DatagramPacket for receiving
 	 */
-	static DatagramPacket createDatagramForReceiving() {
+	public static DatagramPacket createDatagramForReceiving() {
 		return new DatagramPacket(new byte[MAX_LENGTH], MAX_LENGTH);
 	}
 

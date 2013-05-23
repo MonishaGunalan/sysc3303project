@@ -10,7 +10,6 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import sysc3303.project.packets.TftpPacket;
-import sysc3303.project.packets.TftpRequestPacket;
 
 /**
  * @author Korey Conway (100838924)
@@ -19,8 +18,8 @@ import sysc3303.project.packets.TftpRequestPacket;
  */
 public class TftpErrorSimulator {
 	protected InetAddress serverAddress;
-	protected int serverRequestPort = 69;
-	protected int clientRequestPort = 68;
+	protected int serverRequestPort = 6900;
+	protected int clientRequestPort = 6800;
 	protected int threadCount = 0;
 	protected boolean stopping = false;
 	protected RequestReceiveThread requestReceive;
@@ -101,8 +100,8 @@ public class TftpErrorSimulator {
 		System.exit(0);
 	}
 
-	protected class RequestReceiveThread extends Thread {
-		protected DatagramSocket socket;
+	private class RequestReceiveThread extends Thread {
+		private DatagramSocket socket;
 
 		public RequestReceiveThread() {
 			try {
@@ -118,8 +117,7 @@ public class TftpErrorSimulator {
 				incrementThreadCount();
 
 				while (!socket.isClosed()) {
-					byte[] data = new byte[TftpRequestPacket.MAX_LENGTH];
-					DatagramPacket dp = new DatagramPacket(data, data.length);
+					DatagramPacket dp = TftpPacket.createDatagramForReceiving();
 					socket.receive(dp);
 					new ForwardThread(dp).start();
 				}
@@ -135,12 +133,12 @@ public class TftpErrorSimulator {
 		}
 	}
 
-	protected class ForwardThread extends Thread {
-		protected DatagramSocket socket;
-		protected int timeoutMs = 10000; // 10 second receive timeout
-		protected DatagramPacket requestPacket;
-		protected InetAddress clientAddress;
-		protected int clientPort, serverPort;
+	private class ForwardThread extends Thread {
+		private DatagramSocket socket;
+		private int timeoutMs = 10000; // 10 second receive timeout
+		private DatagramPacket requestPacket;
+		private InetAddress clientAddress;
+		private int clientPort, serverPort;
 
 		ForwardThread(DatagramPacket requestPacket) {
 			this.requestPacket = requestPacket;
