@@ -21,16 +21,16 @@ import sysc3303.project.packets.TftpRequestPacket;
  * @author Arzaan (100826631)
  */
 public class TftpServer {
-	// Port on which to listen for requests
-	private static final int LISTEN_PORT = 6900; // 6900 for testing, 69 for submission
-	
+	// Port on which to listen for requests (6900 for dev, 69 for submission)
+	private static final int LISTEN_PORT = 6900;
+
 	// Folder where files are read/written
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/server_files/";
-	
+
 	// Current number of threads (used to know when we have stopped)
 	private int threadCount = 0;
-	
+
 	// Request listener thread. Need reference to stop receiving when stopping.
 	private RequestListenerThread requestListener;
 
@@ -150,6 +150,13 @@ public class TftpServer {
 						tt.start();
 					} else {
 						// we received an invalid packet, so ignore it for now
+						// TODO think about what happens if we get an invalid
+						// packet
+						// or error packet. Do we return an error packet?
+						// Probably not.
+						// If we get a data packet here, then we probably should
+						// send
+						// and invalid tid error.
 					}
 				}
 			} catch (IOException e) {
@@ -164,13 +171,12 @@ public class TftpServer {
 	}
 
 	protected class TransferThread extends Thread {
-		protected DatagramSocket socket;
-		protected String filename;
-		protected String filePath;
-		protected boolean isReadRequest;
-		protected int toPort;
-		protected InetAddress toAddress;
-		protected static final int maxDataSize = 512;
+		private DatagramSocket socket;
+		private String filename;
+		private String filePath;
+		private boolean isReadRequest;
+		private int toPort;
+		private InetAddress toAddress;
 
 		public TransferThread(TftpRequestPacket packet, InetAddress toAddress,
 				int toPort) {
@@ -204,17 +210,20 @@ public class TftpServer {
 
 		public void runReadRequest() {
 			try {
-				FileInputStream fs = new FileInputStream(filePath);
 				int blockNumber = 1;
 				boolean isLastDataPacket = false;
 				InetAddress toAddress = this.toAddress;
 				TftpPacket pk;
+				int maxDataSize = TftpDataPacket.getMaxFileDataLength();
+
+				// TODO errors that can be sent here: file not found, access
+				// violation, no such user
+				FileInputStream fs = new FileInputStream(filePath);
 
 				while (!isLastDataPacket) {
 					// Read file in 512 byte chunks
 					byte[] data = new byte[maxDataSize];
 					int bytesRead = fs.read(data);
-					isLastDataPacket = (bytesRead < maxDataSize);
 
 					if (bytesRead == -1) {
 						// Special case when file size is multiple of 512 bytes
@@ -222,12 +231,17 @@ public class TftpServer {
 						data = new byte[0];
 					}
 
+					// Create the packet and get the flag to know if it is the
+					// last
+					TftpDataPacket dataPacket = TftpPacket.createDataPacket(
+							blockNumber, data, bytesRead);
+					isLastDataPacket = dataPacket.isLastDataPacket();
+					DatagramPacket dp = dataPacket.generateDatagram(toAddress,
+							toPort);
+
 					// Send data packet
 					System.out.printf("Sending block %d of %s%n", blockNumber,
 							filename);
-					DatagramPacket dp = TftpPacket.createDataPacket(blockNumber,
-							data, bytesRead)
-							.generateDatagram(toAddress, toPort);
 					socket.send(dp);
 
 					// Wait until we receive correct ack packet
@@ -235,6 +249,9 @@ public class TftpServer {
 					do {
 						socket.receive(dp);
 						pk = TftpPacket.createFromDatagram(dp);
+						// TODO errors that can be received: any
+						// TODO errors that can be sent: illegal tftp op,
+						// unknown transfer id
 					} while (pk.getType() != TftpPacket.Type.ACK
 							|| ((TftpAckPacket) pk).getBlockNumber() != blockNumber);
 					toAddress = dp.getAddress(); // This updates in case the
@@ -248,10 +265,12 @@ public class TftpServer {
 				fs.close();
 			} catch (FileNotFoundException e) {
 				System.out.println("File not found: " + filename);
+				// todo send error packet of file not found
 				return;
 			} catch (IOException e) {
 				System.out.println("IOException with file: " + filename);
 				e.printStackTrace();
+				// TODO send error packet
 				return;
 			}
 		}
@@ -265,6 +284,7 @@ public class TftpServer {
 				InetAddress toAddress = this.toAddress;
 				TftpPacket pk;
 				TftpDataPacket dataPk;
+				int maxDataSize = TftpDataPacket.getMaxFileDataLength();
 
 				while (true) {
 					// Send ack packet

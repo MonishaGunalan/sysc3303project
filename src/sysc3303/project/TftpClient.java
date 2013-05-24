@@ -104,14 +104,14 @@ public class TftpClient {
 		while (!isWriteDone) {
 			// Generate data packets to be sent
 			int packetSize = fileData.length
-					- ((blockNumber) * TftpDataPacket.getMaxDataLength());
+					- ((blockNumber) * TftpDataPacket.getMaxFileDataLength());
 			System.out.println(packetSize);
-			if (packetSize >TftpDataPacket.getMaxDataLength())
-				packetSize = TftpDataPacket.getMaxDataLength();
+			if (packetSize >TftpDataPacket.getMaxFileDataLength())
+				packetSize = TftpDataPacket.getMaxFileDataLength();
 			else
 				isWriteDone = true;
 			byte[] blockData = new byte[packetSize];
-			int offset = (blockNumber) * TftpDataPacket.getMaxDataLength();
+			int offset = (blockNumber) * TftpDataPacket.getMaxFileDataLength();
 			System.arraycopy(fileData, offset, blockData, 0, blockData.length);
 			blockNumber++;
 			
@@ -145,7 +145,7 @@ public class TftpClient {
 				e.printStackTrace();
 			}
 			System.out.println("Length of data packet: " +dataPacket.getFileData().length);
-			if (dataPacket.getFileData().length < TftpDataPacket.getMaxDataLength()) {
+			if (dataPacket.getFileData().length < TftpDataPacket.getMaxFileDataLength()) {
 				isReadDone = true;
 				System.out.println("Last Data packet");
 				try {
