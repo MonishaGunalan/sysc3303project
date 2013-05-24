@@ -81,8 +81,9 @@ public abstract class TftpPacket {
 		return new TftpDataPacket(blockNumber, data, dataLength);
 	}
 
-	public static void CreateErrorPacket() {
-		// TODO
+	public static TftpErrorPacket createErrorPacket(
+			TftpErrorPacket.ErrorType errorType, String errorMessage) {
+		return new TftpErrorPacket(errorType, errorMessage);
 	}
 
 	/**
@@ -106,8 +107,8 @@ public abstract class TftpPacket {
 	 * @return
 	 * @throws IllegalArgumentException
 	 */
-	private static TftpPacket createFromBytes(byte[] packetData, int packetLength)
-			throws IllegalArgumentException {
+	private static TftpPacket createFromBytes(byte[] packetData,
+			int packetLength) throws IllegalArgumentException {
 		// Check that the packet length makes sense and is long enough
 		if (packetData.length < packetLength || packetLength < MIN_LENGTH) {
 			throw new IllegalArgumentException();

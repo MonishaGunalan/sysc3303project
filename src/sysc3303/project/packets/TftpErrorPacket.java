@@ -62,6 +62,10 @@ public class TftpErrorPacket extends TftpPacket {
 	public String getErrorMessage() {
 		return this.errorMessage;
 	}
+	
+	public boolean shouldAbortTransfer() {
+		return (this.errorType != ErrorType.UNKOWN_TID);
+	}
 
 	/**
 	 * Generate the packet data
