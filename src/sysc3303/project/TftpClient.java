@@ -36,7 +36,7 @@ public class TftpClient {
 	private enum CMD {
 		READ, WRITE, STOP, INVALID, HELP
 	}
-	private static final int MAX_FILE_DATA_LENGTH = 512;
+
 
 	/**
 	 * @param args
@@ -102,17 +102,16 @@ public class TftpClient {
 			e1.printStackTrace();
 		}
 		while (!isWriteDone) {
-/************************change this*************************//////
 			// Generate data packets to be sent
 			int packetSize = fileData.length
-					- ((blockNumber) * MAX_FILE_DATA_LENGTH);
+					- ((blockNumber) * TftpDataPacket.getMaxDataLength());
 			System.out.println(packetSize);
-			if (packetSize >MAX_FILE_DATA_LENGTH)
-				packetSize = MAX_FILE_DATA_LENGTH;
+			if (packetSize >TftpDataPacket.getMaxDataLength())
+				packetSize = TftpDataPacket.getMaxDataLength();
 			else
 				isWriteDone = true;
 			byte[] blockData = new byte[packetSize];
-			int offset = (blockNumber) * MAX_FILE_DATA_LENGTH;
+			int offset = (blockNumber) * TftpDataPacket.getMaxDataLength();
 			System.arraycopy(fileData, offset, blockData, 0, blockData.length);
 			blockNumber++;
 			
@@ -145,8 +144,8 @@ public class TftpClient {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("Length of data packet: " +dataPacket.getFileDataLength());
-			if (dataPacket.getFileDataLength() < MAX_FILE_DATA_LENGTH) {
+			System.out.println("Length of data packet: " +dataPacket.getFileData().length);
+			if (dataPacket.getFileData().length < TftpDataPacket.getMaxDataLength()) {
 				isReadDone = true;
 				System.out.println("Last Data packet");
 				try {
@@ -359,7 +358,6 @@ public class TftpClient {
 			}
 			port = datagramPacket.getPort();
 			TftpAckPacket ack = (TftpAckPacket)TftpPacket.createFromDatagram(datagramPacket);
-			//TftpAckPacket ack = TftpAckPacket.CreateFromBytes(packetData, packetLength);
 			System.out.println("\nClient: Received ack block:"
 					+ ack.getBlockNumber());
 

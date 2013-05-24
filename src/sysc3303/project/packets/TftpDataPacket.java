@@ -64,6 +64,15 @@ public class TftpDataPacket extends TftpPacket {
 	}
 	
 	/**
+	 * Get the max data length
+	 * 
+	 * @return  max data length
+	 */
+	public static int getMaxDataLength(){
+		return MAX_FILE_DATA_LENGTH;
+	}
+
+	/**
 	 * Get the file data
 	 * 
 	 * @return the data byte array
