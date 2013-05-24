@@ -22,7 +22,6 @@ public class TftpDataPacket extends TftpPacket {
 														// minimum length of
 														// data packet)
 
-	private int fileDataLength = 0;
 	private int blockNumber = 0;
 	private byte[] fileData = null; // data byte array from the file being
 									// read/written
@@ -64,12 +63,12 @@ public class TftpDataPacket extends TftpPacket {
 	}
 	
 	/**
-	 * Get the file data length
+	 * Get the max data length
 	 * 
-	 * @return the data length
+	 * @return  max data length
 	 */
-	public int getFileDataLength(){
-		return fileDataLength;
+	public static int getMaxDataLength(){
+		return MAX_FILE_DATA_LENGTH;
 	}
 
 	/**
