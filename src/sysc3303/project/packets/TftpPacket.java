@@ -116,7 +116,7 @@ public abstract class TftpPacket {
 
 		// First should always be 0
 		if (packetData[0] != 0) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Packet data doesn't start with 0");
 		}
 
 		switch (packetData[1]) {
@@ -131,7 +131,7 @@ public abstract class TftpPacket {
 		case 5:
 			TftpErrorPacket.createFromBytes(packetData, packetLength);
 		default:
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid header for the packet");
 		}
 	}
 

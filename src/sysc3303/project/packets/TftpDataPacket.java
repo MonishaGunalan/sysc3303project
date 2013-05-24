@@ -114,19 +114,19 @@ public class TftpDataPacket extends TftpPacket {
 			throws IllegalArgumentException {
 		// Make sure we don't have null
 		if (packetData == null) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("No valid data found");
 		}
 
 		// Verify packet length is valid
 		if (packetLength > packetData.length
 				|| packetLength < PACKET_HEADER_LENGTH
 				|| packetLength > TftpPacket.MAX_LENGTH) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid packet length");
 		}
 
 		// Verify the op code
 		if (packetData[0] != 0 || packetData[1] != OP_CODE) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid OP Code");
 		}
 
 		// Extract the file data and block number

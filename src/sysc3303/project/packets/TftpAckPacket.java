@@ -23,7 +23,7 @@ public class TftpAckPacket extends TftpPacket {
 	TftpAckPacket(int blockNumber) throws IllegalArgumentException {
 		// Verify block number makes sense
 		if (blockNumber < MIN_BLOCK_NUMBER || blockNumber > MAX_BLOCK_NUMBER) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid block number");
 		}
 		this.blockNumber = blockNumber;
 		this.type = Type.ACK;
@@ -41,12 +41,12 @@ public class TftpAckPacket extends TftpPacket {
 			throws IllegalArgumentException {
 		// Make sure data is not null and is long enough
 		if (packetData == null || packetData.length < PACKET_LENGTH || packetLength != PACKET_LENGTH) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Incorrect packet data size");
 		}
 		
 		// Make sure we have the right op code
 		if (packetData[0] != 0 || packetData[1] != OP_CODE) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Incorrect OP code");
 		}
 
 		int blockNumber = (packetData[2] << 8) + packetData[3];
