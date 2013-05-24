@@ -21,17 +21,24 @@ import sysc3303.project.packets.TftpRequestPacket;
  * @author Arzaan (100826631)
  */
 public class TftpServer {
-	protected static final int listenPort = 69;
-	protected String publicFolder = System.getProperty("user.dir")
+	// Port on which to listen for requests
+	private static final int LISTEN_PORT = 6900; // 6900 for testing, 69 for submission
+	
+	// Folder where files are read/written
+	private String publicFolder = System.getProperty("user.dir")
 			+ "/server_files/";
-	protected int threadCount = 0;
-	protected RequestListenerThread requestListener;
+	
+	// Current number of threads (used to know when we have stopped)
+	private int threadCount = 0;
+	
+	// Request listener thread. Need reference to stop receiving when stopping.
+	private RequestListenerThread requestListener;
 
 	/**
 	 * Constructor
 	 */
-	public TftpServer() {
-		requestListener = new RequestListenerThread(listenPort);
+	private TftpServer() {
+		requestListener = new RequestListenerThread(LISTEN_PORT);
 		requestListener.start();
 	}
 
@@ -133,18 +140,16 @@ public class TftpServer {
 				incrementThreadCount();
 
 				while (!socket.isClosed()) {
-					byte[] data = new byte[TftpRequestPacket.MAX_LENGTH];
-					DatagramPacket dp = new DatagramPacket(data, data.length);
+					DatagramPacket dp = TftpPacket.createDatagramForReceiving();
 					socket.receive(dp);
-					TftpPacket packet = TftpPacket.CreateFromBytes(dp.getData(),
-							dp.getLength());
+					TftpPacket packet = TftpPacket.createFromDatagram(dp);
 					if (packet instanceof TftpRequestPacket) {
 						TransferThread tt = new TransferThread(
 								(TftpRequestPacket) packet, dp.getAddress(),
 								dp.getPort());
 						tt.start();
 					} else {
-						// we received an invalid packet, so ignore it
+						// we received an invalid packet, so ignore it for now
 					}
 				}
 			} catch (IOException e) {
@@ -226,11 +231,10 @@ public class TftpServer {
 					socket.send(dp);
 
 					// Wait until we receive correct ack packet
-					data = new byte[TftpPacket.MAX_LENGTH];
-					dp = new DatagramPacket(data, data.length);
+					dp = TftpPacket.createDatagramForReceiving();
 					do {
 						socket.receive(dp);
-						pk = TftpPacket.CreateFromBytes(data, dp.getLength());
+						pk = TftpPacket.createFromDatagram(dp);
 					} while (pk.getType() != TftpPacket.Type.ACK
 							|| ((TftpAckPacket) pk).getBlockNumber() != blockNumber);
 					toAddress = dp.getAddress(); // This updates in case the
@@ -278,11 +282,9 @@ public class TftpServer {
 
 					// Receive data packet
 					do {
-						dp = new DatagramPacket(new byte[TftpPacket.MAX_LENGTH],
-								TftpPacket.MAX_LENGTH);
+						dp = TftpPacket.createDatagramForReceiving();
 						socket.receive(dp);
-						pk = TftpPacket.CreateFromBytes(dp.getData(),
-								dp.getLength());
+						pk = TftpPacket.createFromDatagram(dp);
 					} while (pk.getType() != TftpPacket.Type.DATA
 							|| ((TftpDataPacket) pk).getBlockNumber() != blockNumber);
 
@@ -293,7 +295,7 @@ public class TftpServer {
 					dataPk = (TftpDataPacket) pk;
 					fs.write(dataPk.getFileData());
 
-					if (dataPk.getFileDataLength() != maxDataSize) {
+					if (dataPk.getFileData().length != maxDataSize) {
 						isLastDataPacket = true;
 					}
 				}

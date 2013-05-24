@@ -32,24 +32,24 @@ public class TftpAckPacket extends TftpPacket {
 	/**
 	 * Generate the packet data
 	 * 
-	 * @param data
-	 * @param dataLength
+	 * @param packetData
+	 * @param packetLength
 	 * @throws IllegalArgumentException
 	 * @return the byte array of the packet
 	 */
-	static TftpAckPacket createFromBytes(byte[] data, int dataLength)
+	static TftpAckPacket createFromBytes(byte[] packetData, int packetLength)
 			throws IllegalArgumentException {
 		// Make sure data is not null and is long enough
-		if (data == null || data.length < PACKET_LENGTH || dataLength != PACKET_LENGTH) {
+		if (packetData == null || packetData.length < PACKET_LENGTH || packetLength != PACKET_LENGTH) {
 			throw new IllegalArgumentException();
 		}
 		
 		// Make sure we have the right op code
-		if (data[0] != 0 || data[1] != OP_CODE) {
+		if (packetData[0] != 0 || packetData[1] != OP_CODE) {
 			throw new IllegalArgumentException();
 		}
 
-		int blockNumber = (data[2] << 8) + data[3];
+		int blockNumber = (packetData[2] << 8) + packetData[3];
 		return new TftpAckPacket(blockNumber);
 	}
 

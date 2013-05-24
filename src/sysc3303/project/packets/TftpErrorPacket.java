@@ -1,5 +1,7 @@
 package sysc3303.project.packets;
 
+import java.io.ByteArrayOutputStream;
+
 /**
  * @author Korey Conway (100838924)
  * @author Monisha (100871444)
@@ -7,8 +9,11 @@ package sysc3303.project.packets;
  */
 
 public class TftpErrorPacket extends TftpPacket {
-	static final protected int opCode = 5;
-	protected int blockNumber = 0;
+	private static final int OP_CODE = 5;
+	private static final int MIN_LENGTH = 5;
+
+	private ErrorType errorType;
+	private String errorMessage;
 
 	public enum ErrorType {
 		NOT_DEFINED(0), FILE_NOT_FOUND(1), ACCESS_VIOLATION(2), DISC_FULL_OR_ALLOCATION_EXCEEDED(
@@ -19,9 +24,18 @@ public class TftpErrorPacket extends TftpPacket {
 		ErrorType(int code) {
 			this.code = code;
 		}
-		
+
 		int getCode() {
 			return code;
+		}
+
+		static ErrorType get(int code) throws IllegalArgumentException {
+			for (ErrorType t : ErrorType.values()) {
+				if (code == t.code) {
+					return t;
+				}
+			}
+			throw new IllegalArgumentException();
 		}
 	}
 
@@ -32,28 +46,110 @@ public class TftpErrorPacket extends TftpPacket {
 	 *            for the packet
 	 * @throws IllegalArgumentException
 	 */
-	TftpErrorPacket(ErrorType errorType, String errorMessage) throws IllegalArgumentException {
+	TftpErrorPacket(ErrorType errorType, String errorMessage)
+			throws IllegalArgumentException {
 		if (errorType == null) {
 			throw new IllegalArgumentException();
 		}
-		this.blockNumber = blockNumber;
-		this.type = Type.ERROR;
+		this.errorType = errorType;
+		this.errorMessage = (null == errorMessage) ? "" : errorMessage;
+	}
+
+	public ErrorType getErrorType() {
+		return this.errorType;
+	}
+
+	public String getErrorMessage() {
+		return this.errorMessage;
 	}
 
 	/**
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 * @see sysc3303.project.packets.TftpPacket#generatePacketData()
 	 */
 	@Override
-	public byte[] generateData() throws InvalidPacketException {
-		byte[] packetBytes = new byte[4];
-		packetBytes[0] = 0;
-		packetBytes[1] = (byte) opCode;
-		
-		// TODO
-		return packetBytes;
+	public byte[] generateData() throws IllegalArgumentException {
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+		// Set op code
+		stream.write(0);
+		stream.write(OP_CODE);
+
+		// Set error type
+		stream.write(errorType.getCode() >> 8);
+		stream.write(errorType.getCode());
+
+		// Add error message, terminating with 0
+		byte[] tempByteArr = errorMessage.getBytes();
+		stream.write(tempByteArr, 0, tempByteArr.length);
+		stream.write(0);
+
+		// Convert to byte array and return
+		return stream.toByteArray();
+	}
+
+	static TftpErrorPacket createFromBytes(byte[] packetData, int packetLength)
+			throws IllegalArgumentException {
+		// Make sure we don't have null
+		if (packetData == null) {
+			throw new IllegalArgumentException();
+		}
+
+		// Verify packet length is valid
+		if (packetLength > packetData.length || packetLength < MIN_LENGTH
+				|| packetLength > TftpPacket.MAX_LENGTH) {
+			throw new IllegalArgumentException();
+		}
+
+		// Verify the op code and first byte of error code
+		if (packetData[0] != 0 || packetData[1] != OP_CODE
+				|| packetData[2] != 0) {
+			throw new IllegalArgumentException();
+		}
+
+		// Get the error type
+		int errorCode = packetData[3];
+		ErrorType errorType = ErrorType.get(errorCode);
+
+		// String is from packetData[4] until 2nd last character
+		StringBuilder errorMessage = new StringBuilder();
+		for (int i = 4; i < (packetLength - 1); i++) {
+			if (0 == packetData[i]) {
+				// We should never have a 0 byte in the error message
+				throw new IllegalArgumentException();
+			} else {
+				errorMessage.append(packetData[i]);
+			}
+		}
+
+		// Last character should be 0
+		if (packetData[packetLength - 1] != 0) {
+			throw new IllegalArgumentException();
+		}
+
+		return new TftpErrorPacket(errorType, errorMessage.toString());
+	}
+
+	public String toString() {
+		StringBuilder str = new StringBuilder();
+
+		// Set op code
+		str.append(0);
+		str.append((byte) OP_CODE);
+
+		// Set error type
+		str.append((byte) errorType.getCode() >> 8);
+		str.append((byte) errorType.getCode());
+
+		// Add error message, terminating with 0
+		str.append(errorMessage);
+		str.append(0);
+
+		// Convert to String and return
+		return str.toString();
+
 	}
 }

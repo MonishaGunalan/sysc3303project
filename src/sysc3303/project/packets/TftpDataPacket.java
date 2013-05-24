@@ -9,23 +9,23 @@ import java.io.ByteArrayOutputStream;
  */
 
 public class TftpDataPacket extends TftpPacket {
-	private static final int OP_CODE = 4; // the TFTP op code for a data packet
-	private static final int MAX_FILE_DATA_LENGTH = 512; // the maximum file data length
-													// that can be transmitted
-													// in a single TFTP data
-													// packet
+	// the TFTP op code for a data packet
+	private static final int OP_CODE = 4;
+	
+	// the maximum file data length that can be transmitted in a single TFTP data packet
+	private static final int MAX_FILE_DATA_LENGTH = 512; 
 
 	private static final int MIN_BLOCK_NUMBER = 1; // minimum block number
 	private static final int MAX_BLOCK_NUMBER = 0XFF; // maximum block number
-	private static final int PACKET_HEADER_LENGTH = 4; // length needed for
-														// header (also is
-														// minimum length of
-														// data packet)
 
-	private int fileDataLength = 0;
+	// length needed for header (also is minimum length of data packet)
+	private static final int PACKET_HEADER_LENGTH = 4; 
+	
+	// block number for the packet
 	private int blockNumber = 0;
-	private byte[] fileData = null; // data byte array from the file being
-									// read/written
+
+	// data byte array from the file being read/written
+	private byte[] fileData = null; 
 
 	/**
 	 * Constructor
@@ -64,15 +64,6 @@ public class TftpDataPacket extends TftpPacket {
 	}
 	
 	/**
-	 * Get the file data length
-	 * 
-	 * @return the data length
-	 */
-	public int getFileDataLength(){
-		return fileDataLength;
-	}
-
-	/**
 	 * Get the file data
 	 * 
 	 * @return the data byte array
@@ -108,25 +99,25 @@ public class TftpDataPacket extends TftpPacket {
 	 *            length of datagram packet received (not data within the
 	 *            datagram packet)
 	 * @return
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 */
 	static TftpDataPacket createFromBytes(byte[] packetData, int packetLength)
-			throws InvalidPacketException {
+			throws IllegalArgumentException {
 		// Make sure we don't have null
 		if (packetData == null) {
-			throw new InvalidPacketException();
+			throw new IllegalArgumentException();
 		}
 
 		// Verify packet length is valid
 		if (packetLength > packetData.length
 				|| packetLength < PACKET_HEADER_LENGTH
 				|| packetLength > TftpPacket.MAX_LENGTH) {
-			throw new InvalidPacketException();
+			throw new IllegalArgumentException();
 		}
 
 		// Verify the op code
 		if (packetData[0] != 0 || packetData[1] != OP_CODE) {
-			throw new InvalidPacketException();
+			throw new IllegalArgumentException();
 		}
 
 		// Extract the file data and block number

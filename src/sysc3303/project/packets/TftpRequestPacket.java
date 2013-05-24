@@ -67,30 +67,30 @@ public class TftpRequestPacket extends TftpPacket {
 	/**
 	 * Generate a RequestPacket from the given byte array
 	 * 
-	 * @param data
+	 * @param packetData
 	 *            byte array data received over the network
-	 * @param dataLength
+	 * @param packetLength
 	 *            length of the data from the packet received
 	 * @throws IllegalArgumentException
 	 * @return
 	 */
-	static TftpRequestPacket createFromBytes(byte[] data, int dataLength)
+	static TftpRequestPacket createFromBytes(byte[] packetData, int packetLength)
 			throws IllegalArgumentException {
 		Action action;
 		String filename;
 		Mode mode;
 
 		// Make sure data is not null and is long enough
-		if (data == null || data.length < dataLength || dataLength < MIN_LENGTH) {
+		if (packetData == null || packetData.length < packetLength || packetLength < MIN_LENGTH) {
 			throw new IllegalArgumentException();
 		}
 
 		// Parse the op code
-		if (data[0] != 0) {
+		if (packetData[0] != 0) {
 			throw new IllegalArgumentException();
-		} else if (data[1] == 1) {
+		} else if (packetData[1] == 1) {
 			action = Action.READ;
-		} else if (data[1] == 2) {
+		} else if (packetData[1] == 2) {
 			action = Action.WRITE;
 		} else {
 			throw new IllegalArgumentException();
@@ -99,20 +99,20 @@ public class TftpRequestPacket extends TftpPacket {
 		// Extract the filename
 		int i = 1;
 		StringBuilder filenameBuilder = new StringBuilder();
-		while (data[++i] != 0 && i < dataLength) {
-			filenameBuilder.append((char) data[i]);
+		while (packetData[++i] != 0 && i < packetLength) {
+			filenameBuilder.append((char) packetData[i]);
 		}
 		filename = filenameBuilder.toString();
 
 		// Must have 0 after filename
-		if (data[i] != 0) {
-			throw new InvalidPacketException();
+		if (packetData[i] != 0) {
+			throw new IllegalArgumentException();
 		}
 
 		// Extract the transfer mode
 		StringBuilder modeStrBuilder = new StringBuilder();
-		while (data[++i] != 0 && i < dataLength) {
-			modeStrBuilder.append((char) data[i]);
+		while (packetData[++i] != 0 && i < packetLength) {
+			modeStrBuilder.append((char) packetData[i]);
 		}
 
 		// Save the transfer mode
@@ -122,11 +122,11 @@ public class TftpRequestPacket extends TftpPacket {
 		} else if (modeStr.equals("octet")) {
 			mode = Mode.OCTET;
 		} else {
-			throw new InvalidPacketException();
+			throw new IllegalArgumentException();
 		}
 
 		// Check for the terminating 0 and make sure there is no more data
-		if (data[dataLength - 1] != 0) {
+		if (packetData[packetLength - 1] != 0) {
 			throw new IllegalArgumentException();
 		}
 

@@ -90,10 +90,10 @@ public abstract class TftpPacket {
 	 * 
 	 * @param datagram
 	 * @return
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 */
 	public static TftpPacket createFromDatagram(DatagramPacket datagram)
-			throws InvalidPacketException {
+			throws IllegalArgumentException {
 		return TftpPacket.createFromBytes(datagram.getData(),
 				datagram.getLength());
 	}
@@ -104,7 +104,7 @@ public abstract class TftpPacket {
 	 * @param packetData
 	 * @param packetLength
 	 * @return
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 */
 	private static TftpPacket createFromBytes(byte[] packetData, int packetLength)
 			throws IllegalArgumentException {
@@ -128,8 +128,7 @@ public abstract class TftpPacket {
 		case 4:
 			return TftpDataPacket.createFromBytes(packetData, packetLength);
 		case 5:
-			return null; // TODO TftpErrorPacket.createFromBytes(data,
-							// dataLength);
+			TftpErrorPacket.createFromBytes(packetData, packetLength);
 		default:
 			throw new IllegalArgumentException();
 		}
@@ -153,10 +152,10 @@ public abstract class TftpPacket {
 	 * @param destinationAddress
 	 * @param destinationPort
 	 * @return a DatagramPacket ready to be sent through a socket
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 */
 	public DatagramPacket generateDatagram(InetAddress destinationAddress,
-			int destinationPort) throws InvalidPacketException {
+			int destinationPort) throws IllegalArgumentException {
 		byte data[] = this.generateData();
 		return new DatagramPacket(data, data.length, destinationAddress,
 				destinationPort);
@@ -167,7 +166,7 @@ public abstract class TftpPacket {
 	 * by extending classes.
 	 * 
 	 * @return the byte array of the packet
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 */
 	public abstract byte[] generateData();
 
@@ -176,7 +175,7 @@ public abstract class TftpPacket {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @throws InvalidPacketException
+	 * @throws IllegalArgumentException
 	 */
 	public String toString() {
 		byte[] packetBytes = this.generateData();
