@@ -146,8 +146,7 @@ public class TftpClient {
 		}
 		while (!isReadDone) {
 			DatagramPacket datagramPacket = receiveDataPacket();
-			if(datagramPacket == null)
-			{
+			if (datagramPacket == null) {
 				try {
 					fs.close();
 				} catch (IOException e) {
@@ -156,6 +155,8 @@ public class TftpClient {
 				new File(publicFolder, filename).delete();
 				return;
 			}
+			
+			
 			TftpDataPacket dataPacket = (TftpDataPacket) TftpPacket
 					.createFromDatagram(datagramPacket);
 			try {
@@ -274,9 +275,9 @@ public class TftpClient {
 								.createFromDatagram(datagramPacket);
 						System.out
 								.printf("Received error of type '%s' with message '%s'%n",
-										errorPk.getType().toString(),
+										errorPk.getErrorType().toString(),
 										errorPk.getErrorMessage());
-						portOfServer = -1;
+						return null;
 					} else {
 
 						TftpDataPacket dataPacket = (TftpDataPacket) TftpPacket
@@ -287,17 +288,21 @@ public class TftpClient {
 					}
 				} else {// Invalid TID: Send error Packet
 					validTID = false;
+					System.out.println("******Ignoring unknown TID***********");
 					TftpErrorPacket errorPacket = TftpPacket.createErrorPacket(
 							ErrorType.UNKOWN_TID,
 							"Unknown TID: Not expecting ACK from this TID");
 					socket.send(errorPacket.generateDatagram(
-							InetAddress.getLocalHost(), portOfServer));
+							InetAddress.getLocalHost(),
+							datagramPacket.getPort()));
+					datagramPacket = TftpPacket.createDatagramForReceiving();
+					socket.receive(datagramPacket);
 				}
 
 			} while (!validTID);
 		} catch (IOException e) {
 			e.printStackTrace();
-		}catch(IllegalArgumentException e){
+		} catch (IllegalArgumentException e) {
 			System.out.println("Illegal operation " + e.getMessage());
 			TftpErrorPacket errorPacket = TftpPacket.createErrorPacket(
 					ErrorType.ILLEGAL_OPERATION, e.getMessage());
@@ -440,6 +445,7 @@ public class TftpClient {
 					for (int i = 0; i < packetLength; i++) {
 						System.out.print(packetData[i]);
 					}
+					System.out.println();
 
 					// check if it's an error packet
 					if (TftpPacket.createFromDatagram(datagramPacket) instanceof TftpErrorPacket) {
@@ -447,7 +453,7 @@ public class TftpClient {
 								.createFromDatagram(datagramPacket);
 						System.out
 								.printf("Received error of type '%s' with message '%s'%n",
-										errorPk.getType().toString(),
+										errorPk.getErrorType().toString(),
 										errorPk.getErrorMessage());
 						portOfServer = -1;
 					} else {
@@ -459,11 +465,15 @@ public class TftpClient {
 					}
 				} else { // Invalid TID Send error Packet
 					validTID = false;
+					System.out.println("Ignoring unknown TID");
 					TftpErrorPacket errorPacket = TftpPacket.createErrorPacket(
 							ErrorType.UNKOWN_TID,
 							"Unknown TID: Not expecting ACK from this TID");
 					socket.send(errorPacket.generateDatagram(
-							InetAddress.getLocalHost(), portOfServer));
+							InetAddress.getLocalHost(),
+							datagramPacket.getPort()));
+					datagramPacket = TftpPacket.createDatagramForReceiving();
+					socket.receive(datagramPacket);
 				}
 			} while (!validTID);
 		} catch (IOException e) {

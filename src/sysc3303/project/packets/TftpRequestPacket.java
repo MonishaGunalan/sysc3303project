@@ -36,9 +36,9 @@ public class TftpRequestPacket extends TftpPacket {
 	TftpRequestPacket(String filename, Action action, Mode mode)
 			throws IllegalArgumentException {
 		// Make sure our parameters are not null and filename isn't blank
-		if (filename == null || filename.length() == 0 || action == null
+		if (filename == null || filename.length() == 0|| action == null
 				|| mode == null) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Missing data in the request packet");
 		}
 		this.filename = filename;
 		this.action = action;
@@ -82,18 +82,18 @@ public class TftpRequestPacket extends TftpPacket {
 
 		// Make sure data is not null and is long enough
 		if (packetData == null || packetData.length < packetLength || packetLength < MIN_LENGTH) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Data is not long enough");
 		}
 
 		// Parse the op code
 		if (packetData[0] != 0) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid OP code");
 		} else if (packetData[1] == 1) {
 			action = Action.READ;
 		} else if (packetData[1] == 2) {
 			action = Action.WRITE;
 		} else {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid OP code");
 		}
 
 		// Extract the filename
@@ -106,7 +106,7 @@ public class TftpRequestPacket extends TftpPacket {
 
 		// Must have 0 after filename
 		if (packetData[i] != 0) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Must have 0 after filename");
 		}
 
 		// Extract the transfer mode
@@ -122,12 +122,12 @@ public class TftpRequestPacket extends TftpPacket {
 		} else if (modeStr.equals("octet")) {
 			mode = Mode.OCTET;
 		} else {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid transfer mode");
 		}
 
 		// Check for the terminating 0 and make sure there is no more data
 		if (packetData[packetLength - 1] != 0) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Trailing 0 not found");
 		}
 
 		// Create a RequestPacket

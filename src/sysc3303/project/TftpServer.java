@@ -25,7 +25,7 @@ import sysc3303.project.packets.TftpRequestPacket;
  */
 public class TftpServer {
 	// Port on which to listen for requests (6900 for dev, 69 for submission)
-	private static final int LISTEN_PORT = 6900;
+	private static final int LISTEN_PORT = 69;
 
 	// Folder where files are read/written
 	private String publicFolder = System.getProperty("user.dir")
@@ -174,9 +174,10 @@ public class TftpServer {
 						// We got an invalid packet
 						// Open new socket and send error packet response
 						DatagramSocket errorSocket = new DatagramSocket();
+						System.out.println("\nServer received invalid request packet");
 						TftpErrorPacket errorPacket = TftpPacket
 								.createErrorPacket(ErrorType.ILLEGAL_OPERATION,
-										"Could not parse the packet.");
+										e.getMessage());
 						dp = errorPacket.generateDatagram(dp.getAddress(),
 								dp.getPort());
 						errorSocket.send(dp);
@@ -273,15 +274,15 @@ public class TftpServer {
 							// Check for correct TID (sender port)
 							TftpErrorPacket errorPacket = TftpPacket
 									.createErrorPacket(ErrorType.UNKOWN_TID,
-											"You're an idiot, and used an unkown TID");
+											"You used an unkown TID");
 							socket.send(errorPacket.generateDatagram(toAddress,
-									toPort));
+									dp.getPort()));
 							continue;
 						} else if (pk instanceof TftpErrorPacket) {
 							TftpErrorPacket errorPk = (TftpErrorPacket) pk;
 							System.out
 									.printf("Received error of type '%s' with message '%s'%n",
-											errorPk.getType().toString(),
+											errorPk.getErrorType().toString(),
 											errorPk.getErrorMessage());
 							if (errorPk.shouldAbortTransfer()) {
 								// Close file and abort transfer
@@ -328,6 +329,26 @@ public class TftpServer {
 				}
 				System.out.println("IOException with file: " + filename);
 				return;
+			} catch(IllegalArgumentException e){
+				// We got an invalid packet
+				// Open new socket and send error packet response
+				DatagramSocket errorSocket = null;
+				try {
+					errorSocket = new DatagramSocket();
+				} catch (SocketException e1) {
+					e1.printStackTrace();
+				}
+				System.out.println("\nServer received invalid packet");
+				TftpErrorPacket errorPacket = TftpPacket
+						.createErrorPacket(ErrorType.ILLEGAL_OPERATION,
+								e.getMessage());
+				DatagramPacket dp = errorPacket.generateDatagram(toAddress,
+						toPort);
+				try {
+					errorSocket.send(dp);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 		}
 
@@ -369,13 +390,15 @@ public class TftpServer {
 									.createErrorPacket(ErrorType.UNKOWN_TID,
 											"You're an idiot, and used an unkown TID");
 							socket.send(errorPacket.generateDatagram(toAddress,
-									toPort));
+									dp.getPort()));
+							System.out.println("******Ignoring invalid TID********");
+							
 							continue;
 						} else if (pk instanceof TftpErrorPacket) {
 							TftpErrorPacket errorPk = (TftpErrorPacket) pk;
 							System.out
 									.printf("Received error of type '%s' with message '%s'%n",
-											errorPk.getType().toString(),
+											errorPk.getErrorType().toString(),
 											errorPk.getErrorMessage());
 							if (errorPk.shouldAbortTransfer()) {
 								// Close file and abort transfer
@@ -390,7 +413,7 @@ public class TftpServer {
 								return;
 							}
 						}
-					} while ((pk instanceof TftpDataPacket)
+					} while (!(pk instanceof TftpDataPacket)
 							|| ((TftpDataPacket) pk).getBlockNumber() != blockNumber);
 
 					System.out.printf("Received block %d of %s%n", blockNumber,
@@ -422,6 +445,26 @@ public class TftpServer {
 				System.out.println("IOException with file: " + filename);
 				e.printStackTrace();
 				return;
+			}catch(IllegalArgumentException e){
+				// We got an invalid packet
+				// Open new socket and send error packet response
+				DatagramSocket errorSocket = null;
+				try {
+					errorSocket = new DatagramSocket();
+				} catch (SocketException e1) {
+					e1.printStackTrace();
+				}
+				System.out.println("\nServer received invalid packet");
+				TftpErrorPacket errorPacket = TftpPacket
+						.createErrorPacket(ErrorType.ILLEGAL_OPERATION,
+								e.getMessage());
+				DatagramPacket dp = errorPacket.generateDatagram(toAddress,
+						toPort);
+				try {
+					errorSocket.send(dp);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 			}
 		}
 	}

@@ -35,14 +35,14 @@ public class TftpDataPacket extends TftpPacket {
 	 * @param fileDataLength
 	 */
 	TftpDataPacket(int blockNumber, byte[] fileData, int fileDataLength) {
-		// Block number must be unsigned 2 byte integer (between 1 and 0xFF)
+		// Block number must be unsigned 2 byte integer (between 1 and 0xFFFF)
 		if (blockNumber < MIN_BLOCK_NUMBER || blockNumber > MAX_BLOCK_NUMBER) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Invalid block number");
 		}
 
 		// if fileData is null, we must have a fileDataLength of 0
 		if (fileData == null && fileDataLength != 0) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("File Data is null");
 		}
 
 		// fileDataLength can never exceed the array size of fileData, nor the
@@ -50,7 +50,7 @@ public class TftpDataPacket extends TftpPacket {
 		if (fileData != null
 				&& (fileDataLength > fileData.length
 						|| fileDataLength > MAX_FILE_DATA_LENGTH || fileDataLength < 0)) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Excess data");
 		}
 
 		this.type = Type.DATA;

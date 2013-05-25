@@ -125,7 +125,7 @@ public class TftpErrorPacket extends TftpPacket {
 				// We should never have a 0 byte in the error message
 				throw new IllegalArgumentException();
 			} else {
-				errorMessage.append(packetData[i]);
+				errorMessage.append((char)packetData[i]);
 			}
 		}
 

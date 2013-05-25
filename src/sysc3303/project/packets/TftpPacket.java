@@ -111,7 +111,7 @@ public abstract class TftpPacket {
 			int packetLength) throws IllegalArgumentException {
 		// Check that the packet length makes sense and is long enough
 		if (packetData.length < packetLength || packetLength < MIN_LENGTH) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("packet Length is less than minimum length");
 		}
 
 		// First should always be 0
@@ -129,9 +129,9 @@ public abstract class TftpPacket {
 		case 4:
 			return TftpDataPacket.createFromBytes(packetData, packetLength);
 		case 5:
-			TftpErrorPacket.createFromBytes(packetData, packetLength);
+			return TftpErrorPacket.createFromBytes(packetData, packetLength);
 		default:
-			throw new IllegalArgumentException("Invalid header for the packet");
+			throw new IllegalArgumentException("Invalid OP Code " + packetData[1]);
 		}
 	}
 
@@ -143,7 +143,7 @@ public abstract class TftpPacket {
 	 * @return a DatagramPacket for receiving
 	 */
 	public static DatagramPacket createDatagramForReceiving() {
-		return new DatagramPacket(new byte[MAX_LENGTH], MAX_LENGTH);
+		return new DatagramPacket(new byte[MAX_LENGTH * 2], MAX_LENGTH *2);
 	}
 
 	/**

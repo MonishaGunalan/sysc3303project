@@ -9,6 +9,8 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import sysc3303.project.packets.TftpAckPacket;
+import sysc3303.project.packets.TftpDataPacket;
 import sysc3303.project.packets.TftpPacket;
 
 /**
@@ -17,785 +19,439 @@ import sysc3303.project.packets.TftpPacket;
  * @author Arzaan (100826631)
  */
 public class TftpErrorSimulator {
-	private DatagramPacket sendPacket, receivePacket;
 
-	private DatagramSocket receiveSocket, sendSocket, sendReceiveSocket;
+	private enum ErrorCommands {
+		NORMAL("normal"), 
+		ERROR_CHANGE_OPCODE("mode 0"), 
+		ERROR_REMOVE_FILENAME_DELIMITER("mode 1"),
+		ERROR_REMOVE_MODE_DELIMITER("mode 2"),
+		ERROR_MODIFY_MODE("mode 3"),
+		ERROR_APPEND_DATAPACKET("mode 4"),
+		ERROR_SHRINK_PACKET("mode 5"),
+		ERROR_APPEND_ACK("mode 6"),
+		ERROR_REMOVE_FILENAME("mode 7"),
+		ERROR_INVALID_TID("mode 8");
+		
 
-	public static boolean isContentShow = false;
-	public static boolean isPortShow = false;
+		/**
+		 * @param text
+		 */
+		private ErrorCommands(final String text) {
+			this.text = text;
+		}
 
-	public static boolean blknumChange = false, mesgChange = false,
-			errorCodeChange = false, portChange = false;
+		private final String text;
 
-	// , dataPacketSim = false, ackPacketSim = false
-	public static boolean requestSim = false, packetSim = false;
-	public static boolean opCodeChange = false, fileNameChange = false,
-			modetypeChange = false;
-	public static boolean duplicateSim = false, lostPacketSim = false,
-			deplayPacketSim = false;
-	public static String fileName;
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.lang.Enum#toString()
+		 */
+		@Override
+		public String toString() {
+			return text;
+		}
+	}
 
-	public static byte[] opcode = { 0, 0 }, blkNum = { 0, 0 }, errorCode = { 0,
-			0 };
 
-	public static int packetType = -1, blockBumber = -1, delayTime = 0;
+	protected InetAddress serverAddress;
+	protected int serverRequestPort = 69;
+	protected int clientRequestPort = 68;
+	protected int threadCount = 0;
+	protected boolean stopping = false;
+	protected RequestReceiveThread requestReceive;
 
-	public static boolean errorSimulated = false;
-	private boolean break1 = false, break2 = false;
-	private int clientPort, serverPort;
+	private ErrorCommands errorCommand = ErrorCommands.NORMAL;
 
+	/**
+	 * Constructor
+	 */
 	public TftpErrorSimulator() {
 		try {
-			// Construct a datagram socket and bind it to port 68
-			// on the local host machine. This socket will be used to
-			// receive UDP Datagram packets from clients.
-			receiveSocket = new DatagramSocket(68);
-		} catch (SocketException se) {
-			se.printStackTrace();
-			System.exit(1);
+			serverAddress = InetAddress.getLocalHost();
+			requestReceive = new RequestReceiveThread();
+			requestReceive.start();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
-	public void passOnTFTP() {
-		byte[] data, sending;
-		int j = 0;
-		// Construct a DatagramPacket for receiving packets up
-		// to 100 bytes long (the length of the byte array).
-		for (;;) {
-			try {
-				sendReceiveSocket = new DatagramSocket();
-				sendSocket = new DatagramSocket();
-			} catch (SocketException se) {
-				se.printStackTrace();
-				System.exit(1);
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		TftpErrorSimulator errorSimulator = new TftpErrorSimulator();
+		Scanner scanner = new Scanner(System.in);
+
+		while (true) {
+			System.out.print("Command: ");
+			String command = scanner.nextLine().toLowerCase();
+
+			// Continue if blank line was passed
+			if (command.length() == 0) {
+				continue;
 			}
 
-			data = new byte[100];
-			receivePacket = new DatagramPacket(data, data.length);
-			// System.out.println(lostPacketSim);
-			System.out
-					.println("\nSimulator: Waiting for packet from client to port 68");
-			// Block until a datagram packet is received from receiveSocket.
-			try {
-				receiveSocket.receive(receivePacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-
-			System.out.println("Simulator: Packet received:");
-			clientPort = receivePacket.getPort();
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			// Now pass it on to the server (to port 69)
-			// 69 - the destination port number on the destination host.
-			sendPacket = new DatagramPacket(receivePacket.getData(),
-					receivePacket.getLength(), receivePacket.getAddress(), 69);
-			if (lostPacketSim && Errors.identifyPacket(sendPacket)
-					&& !errorSimulated) {
-				System.out.println("We simulate Request Packet is missing");
-				errorSimulated = true;
-			} else {
-
-				System.out.println("Simulator: sending Request.");
-				// Send the datagram packet to the server via the send/receive
-				// socket.
-				Display.showContent(sendPacket.getData());
-				if (requestSim) {
-					System.out
-							.println("We are simulating Request Packet change");
-					if (fileNameChange)
-						sendPacket = Errors.alterFileName(sendPacket, fileName);
-					if (opCodeChange)
-						sendPacket = Errors.alterOpcode(sendPacket, opcode);
-					Display.showContent(sendPacket.getData());
-				}
-				try {
-					sendReceiveSocket.send(sendPacket);
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-
-				data = receivePacket.getData();
-				if (lostPacketSim) {
-					if (data[1] == 1)
-						readingPacketLosingSim();
-					else
-						writtingPacketLosingSim();
-				} else {
-					transferSim();
-				}
-
-				System.out.println("Close socket");
-				sendSocket.close();
-				sendReceiveSocket.close();
-				break1 = false;
-				break2 = false;
-			}
-
-		} // end big for loop
-	}
-
-	public void readingPacketLosingSim() {
-		System.out.println("launching readingPacketLosingSim");
-		byte[] data;
-		for (;;) { // loop forever
-			// Construct a DatagramPacket for receiving packets up
-			data = new byte[516];
-			receivePacket = new DatagramPacket(data, data.length);
-
-			System.out.println("\nSimulator: Waiting for packet from server.");
-			try {
-				// Block until a datagram is received via sendReceiveSocket.
-				sendReceiveSocket.receive(receivePacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-
-			System.out.println("Simulator: Packet received:");
-			serverPort = receivePacket.getPort();
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			// Process the received datagram.
-			// Construct a datagram packet that is to be sent to a specified
-			sendPacket = new DatagramPacket(data, receivePacket.getLength(),
-					receivePacket.getAddress(), clientPort);
-
-			Errors.ErrorSim(sendPacket, sendSocket);
-
-			if (lostPacketSim && Errors.identifyPacket(sendPacket)
-					&& !errorSimulated) {
+			if (command.equals("help")) {
+				System.out.println("Available commands:");
+				System.out.println("    help: prints this help menu");
 				System.out
-						.println("We simulate one DATA Packet is missing(Reading)");
-				errorSimulated = true;
-			} else {
-				System.out.println("Simulator: Sending packet:");
-				if (isContentShow)
-					Display.showContent(receivePacket.getData());
-				if (isPortShow)
-					Display.showPort(receivePacket, sendReceiveSocket);
-
-				try {
-					sendSocket.send(sendPacket);
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-
-				// System.out.println("\nSimulator: packet sent using port " +
-				// sendSocket.getLocalPort());
-				System.out.println();
-
-				// first break!
-				// break1
-				if (break1)
-					break;
-				// finding the last packet for break1!
-				// System.out.println("Checking last one");
-				if (receivePacket.getLength() < 516 && data[1] == 3) {
-					System.out
-							.println("find the last DATA packet for writting");
-					break2 = true;
-				}
-
-				data = new byte[516];
-				receivePacket = new DatagramPacket(data, data.length);
-
+						.println("    stop: stop the error simulator (when current transfers finish)");
+				System.out.println("mode 0 : change packet opcode ");
 				System.out
-						.println("\nSimulator: Waiting for packet from client.");
-				// Block until a datagram packet is received from receiveSocket.
-				try {
-					sendSocket.receive(receivePacket);
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-				System.out.println("Simulator: Packet received:");
-				if (isContentShow)
-					Display.showContent(receivePacket.getData());
-				if (isPortShow)
-					Display.showPort(receivePacket, sendReceiveSocket);
-
-				sendPacket = new DatagramPacket(data,
-						receivePacket.getLength(), receivePacket.getAddress(),
-						serverPort);
-
-				if (lostPacketSim && Errors.identifyPacket(sendPacket)
-						&& !errorSimulated) {
-					System.out
-							.println("We simulate one ACK Packet is missing(Reading)");
-					errorSimulated = true;
-				} else {
-					System.out.println("Simulator: sending packet.");
-					if (isContentShow)
-						Display.showContent(receivePacket.getData());
-					if (isPortShow)
-						Display.showPort(receivePacket, sendReceiveSocket);
-
-					Errors.ErrorSim(sendPacket, sendReceiveSocket);
-
-					// Send the datagram packet to the server via the
-					// send/receive
-					// socket.
-					try {
-						sendReceiveSocket.send(sendPacket);
-					} catch (IOException e) {
-						e.printStackTrace();
-						System.exit(1);
-					}
-
-					// second break!
-					// break1
-					if (break2)
-						break;
-					// finding the last packet for break1!
-					/*
-					 * System.out.println("-----------------------------------");
-					 * System.out.println("Checking last one");
-					 * //System.out.println("length " +
-					 * receivePacket.getLength());
-					 * //System.out.println(data[1]);
-					 * System.out.println("-------------------------------------"
-					 * );
-					 */
-					if (receivePacket.getLength() < 516 && data[1] == 3) {
-						System.out
-								.println("find the last DATA packet for reading");
-						break1 = true;
-					}
-
-					// We're finished with this socket, so close it.
-					// sendSocket.close();
-				}
-			}
-		} // end inside for loop
-	}
-
-	public void writtingPacketLosingSim() {
-		System.out.println("launching writtingPacketLosingSim");
-
-		byte[] data;
-		for (;;) { // loop forever
-			// Construct a DatagramPacket for receiving packets up
-			data = new byte[516];
-			receivePacket = new DatagramPacket(data, data.length);
-
-			System.out.println("\nSimulator: Waiting for packet from server.");
-			try {
-				// Block until a datagram is received via sendReceiveSocket.
-				sendReceiveSocket.receive(receivePacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-
-			System.out.println("Simulator: Packet received:");
-			serverPort = receivePacket.getPort();
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			// Process the received datagram.
-			// Construct a datagram packet that is to be sent to a specified
-			sendPacket = new DatagramPacket(data, receivePacket.getLength(),
-					receivePacket.getAddress(), clientPort);
-
-			Errors.ErrorSim(sendPacket, sendSocket);
-
-			if (lostPacketSim && Errors.identifyPacket(sendPacket)
-					&& !errorSimulated) {
+						.println("mode 1: Remove the byte '0' after the file name");
 				System.out
-						.println("We simulate one DATA Packet is missing(Reading)");
-				errorSimulated = true;
-			} else {
-				System.out.println("Simulator: Sending packet:");
-				if (isContentShow)
-					Display.showContent(receivePacket.getData());
-				if (isPortShow)
-					Display.showPort(receivePacket, sendReceiveSocket);
-
-				try {
-					sendSocket.send(sendPacket);
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-
-				// System.out.println("\nSimulator: packet sent using port " +
-				// sendSocket.getLocalPort());
-				System.out.println();
-
-				// first break!
-				// break1
-				if (break1)
-					break;
-				// finding the last packet for break1!
-				// System.out.println("Checking last one");
-				if (receivePacket.getLength() < 516 && data[1] == 3) {
-					System.out
-							.println("find the last DATA packet for writting");
-					break2 = true;
-				}
-
-				data = new byte[516];
-				receivePacket = new DatagramPacket(data, data.length);
-
+				.println("mode 2: Remove the byte '0' after the mode");
 				System.out
-						.println("\nSimulator: Waiting for packet from client.");
-				// Block until a datagram packet is received from receiveSocket.
-				try {
-					sendSocket.receive(receivePacket);
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-				System.out.println("Simulator: Packet received:");
-				if (isContentShow)
-					Display.showContent(receivePacket.getData());
-				if (isPortShow)
-					Display.showPort(receivePacket, sendReceiveSocket);
-
-				sendPacket = new DatagramPacket(data,
-						receivePacket.getLength(), receivePacket.getAddress(),
-						serverPort);
-
-				if (lostPacketSim && Errors.identifyPacket(sendPacket)
-						&& !errorSimulated) {
-					System.out
-							.println("We simulate one DATA Packet is missing(Reading)");
-					errorSimulated = true;
-					System.out
-							.println("\nSimulator: Waiting for packet from client.");
-					// Block until a datagram packet is received from
-					// receiveSocket.
-					try {
-						sendSocket.receive(receivePacket);
-					} catch (IOException e) {
-						e.printStackTrace();
-						System.exit(1);
-					}
-					System.out.println("Simulator: Packet received:");
-				}
-
-				System.out.println("Simulator: sending packet.");
-				if (isContentShow)
-					Display.showContent(receivePacket.getData());
-				if (isPortShow)
-					Display.showPort(receivePacket, sendReceiveSocket);
-
-				Errors.ErrorSim(sendPacket, sendReceiveSocket);
-
-				// Send the datagram packet to the server via the send/receive
-				// socket.
-				try {
-					sendReceiveSocket.send(sendPacket);
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-
-				// second break!
-				// break1
-				if (break2)
-					break;
-				// finding the last packet for break1!
-				/*
-				 * System.out.println("-----------------------------------");
-				 * System.out.println("Checking last one");
-				 * //System.out.println("length " + receivePacket.getLength());
-				 * //System.out.println(data[1]);
-				 * System.out.println("-------------------------------------");
-				 */
-				if (receivePacket.getLength() < 516 && data[1] == 3) {
-					System.out.println("find the last DATA packet for reading");
-					break1 = true;
-				}
-
-				// We're finished with this socket, so close it.
-				// sendSocket.close();
-			}
-		} // end inside for loop
-	}
-
-	public void transferSim() {
-		System.out.println("launching TransferSim");
-		byte[] data;
-		for (;;) { // loop forever
-			// Construct a DatagramPacket for receiving packets up
-			data = new byte[516];
-			receivePacket = new DatagramPacket(data, data.length);
-			System.out.println("\nSimulator: Waiting for packet from server.");
-			try {
-				// Block until a datagram is received via sendReceiveSocket.
-				sendReceiveSocket.receive(receivePacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-
-			System.out.println("Simulator: Packet received:");
-			serverPort = receivePacket.getPort();
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			// Process the received datagram.
-			// Construct a datagram packet that is to be sent to a specified
-			sendPacket = new DatagramPacket(data, receivePacket.getLength(),
-					receivePacket.getAddress(), clientPort);
-
-			System.out.println("Simulator: Sending packet:");
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			Errors.ErrorSim(sendPacket, sendSocket); // sim dulicate packet and
-														// delay packet
-			sendPacket = Errors.packetSim(sendPacket);
-			/*
-			 * if (packetSim && Errors.identifyPacket(sendPacket) &&
-			 * !errorSimulated ) { System.out.println("Simulating "); if
-			 * (fileNameChange == true) sendPacket =
-			 * Errors.alterFileName(sendPacket, fileName); if (opCodeChange ==
-			 * true) sendPacket = Errors.alterOpcode(sendPacket, opcode);
-			 * errorSimulated = true; }
-			 */
-
-			try {
-				sendSocket.send(sendPacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-			// System.out.println("\nSimulator: packet sent using port " +
-			// sendSocket.getLocalPort());
-			System.out.println();
-
-			// first break!
-			// break1
-			if (break1)
-				break; // finding the last packet for break1!
-			// System.out.println("Checking last one");
-			if (receivePacket.getLength() < 516 && data[1] == 3) {
-				System.out.println("find the last DATA packet for writting");
-				break2 = true;
-			}
-
-			data = new byte[516];
-			receivePacket = new DatagramPacket(data, data.length);
-
-			System.out.println("\nSimulator: Waiting for packet from client.");
-			// Block until a datagram packet is received from receiveSocket.
-			try {
-				sendSocket.receive(receivePacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-			System.out.println("Simulator: Packet received:");
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			sendPacket = new DatagramPacket(data, receivePacket.getLength(),
-					receivePacket.getAddress(), serverPort);
-
-			System.out.println("Simulator: sending packet.");
-			if (isContentShow)
-				Display.showContent(receivePacket.getData());
-			if (isPortShow)
-				Display.showPort(receivePacket, sendReceiveSocket);
-
-			Errors.ErrorSim(sendPacket, sendReceiveSocket); // sim dulicate
-															// packet and delay
-															// packet
-			sendPacket = Errors.packetSim(sendPacket);
-			try {
-				sendReceiveSocket.send(sendPacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-
-			// second break!
-			// break1
-			if (break2)
-				break;
-			if (receivePacket.getLength() < 516 && data[1] == 3) {
-				System.out.println("find the last DATA packet for reading");
-				break1 = true;
-			}
-
-			// We're finished with this socket, so close it.
-			// sendSocket.close();
-		} // end inside for loop
-	}
-
-	public static void main(String args[]) {
-		TftpErrorSimulator s = new TftpErrorSimulator();
-
-		int num = 0;
-
-		int changeReq = 0;
-		int choiceMode = 0;
-		int change;
-		int state = 1;
-		String userChoice = null, changeData, command;
-
-		Scanner user_input = new Scanner(System.in);
-		boolean notReaday = true;
-
-		System.out.println("TftpErrorSimulator");
-		System.out.println("");
-		System.out
-				.println("Every time after you finish a file transfer you need restart TftpErrorSimulator");
-		System.out.println("");
-		System.out.println("Please type the number of what you like to do");
-		System.out.println("0. Normal");
-		System.out.println("1. Change request");
-		System.out.println("2. Change Packet");
-		System.out.println("3. Unknow Port Sim");
-		System.out.println("4. duplicate Packet");
-		System.out.println("5. losing a Packet");
-		System.out.println("6. delay a Packet");
-		choiceMode = user_input.nextInt();
-		num++;
-
-		switch (choiceMode) {
-		case 0: {
-		}
-			break;
-		case 1:
-		// change request
-		{
-			requestSim = true;
-			while (notReaday) {
-				System.out.println("What you like to change type number?");
-				System.out.println("1. OpCode");
-				System.out.println("2. Filename");
-				System.out.println("3. 0");
-				System.out.println("4. Change mode");
-				System.out.println("5. 0");
-				System.out.println("");
-				System.out.println("0.-- Run --");
-				changeReq = user_input.nextInt();
-
-				if (changeReq == 1) {
-					System.out.println("Please type a new OpCode number?");
-					change = user_input.nextInt();
-					opcode[0] = (byte) (change / 10);
-					opcode[1] = (byte) (change % 10);
-					opCodeChange = true;
-
-				} else if (changeReq == 2) {
-					System.out.println("Please type a new file name?");
-					fileName = user_input.next();
-					fileNameChange = true;
-				} else if (changeReq == 3) {
-					System.out.println("Type a number");
-					change = user_input.nextInt();
-				} else if (changeReq == 4) {
-					System.out.println("2. Type the mode you ");
-					String modetype = user_input.next();
-					modetypeChange = true;
-
-				} else if (changeReq == 5) {
-					System.out.println("Type a number");
-					change = user_input.nextInt();
-				} else if (changeReq == 0) {
-					notReaday = false;
-
-				} else {
-					System.out.println("Invalid Entry");
-				}
-			} // end while
-		}
-			break;
-		case 2:
-		// change dataPacket and ACK
-		{
-			packetSim = true;
-			// dataPacketSim = true;
-			System.out.println("Simulate transfering fake Packet");
-			System.out.println("Choose a Packet to change:");
-			System.out.println("2. DATA Packet");
-			System.out.println("3. ACK Packet");
-			System.out.println("4. ERROR Packet");
-			changeReq = user_input.nextInt();
-			while (changeReq != 2 && changeReq != 3 && changeReq != 4) {
-				System.out.println("please enter an valid number");
-				changeReq = user_input.nextInt();
-			}
-			packetType = changeReq;
-			System.out.println("Which Block you want to change(type a number)");
-			blockBumber = user_input.nextInt();
-
-			while (notReaday) {
-				System.out.println("What you like to change?");
-				System.out.println("1. OpCode");
-				System.out.println("2. Data Block number");
-				System.out.println("3. ErrType (for Error sim only)");
-				System.out.println();
-				System.out.println("0.-- Run --");
-				changeReq = user_input.nextInt();
-
-				if (changeReq == 1) {
-					System.out
-							.println("Please type a new OpCode number(ie:  02 by tying 2)");
-					change = user_input.nextInt();
-					opcode[0] = (byte) (change / 10);
-					opcode[1] = (byte) (change % 10);
-					opCodeChange = true;
-				} else if (changeReq == 2) {
-					System.out.println("Please type a new dataBlock number");
-					change = user_input.nextInt();
-					blkNum[0] = (byte) (change / 10);
-					blkNum[1] = (byte) (change % 10);
-					blknumChange = true;
-
-				} else if (changeReq == 3) {
-					System.out
-							.println("Please type a new Error code(ie: 05 by tying 5)");
-					change = user_input.nextInt();
-					errorCode[0] = (byte) (change / 10);
-					errorCode[1] = (byte) (change % 10);
-					errorCodeChange = true;
-
-				} else if (changeReq == 0) {
-					notReaday = false;
-				} else {
-					System.out.println("Invalid Entry");
-				}
-			}
-		}
-			break;
-		/*
-		 * case 4: // change error { packetSim = true; while (notReaday) {
-		 * System.out.println("What you like to change?");
-		 * System.out.println("1. OpCode"); System.out.println("2. Error code");
-		 * System.out.println("3. ErrMsg"); System.out.println("4. 0");
-		 * System.out.println("6.-- Run --"); changeReq = user_input.nextInt();
-		 * if (changeReq == 1) {
-		 * System.out.println("Please type a new OpCode number?"); change =
-		 * user_input.nextInt(); opcode[0] = (byte)(change / 10); opcode[1] =
-		 * (byte)(change % 10); opCodeChange = true; } else if (changeReq == 2)
-		 * { System.out.println("Please type a new Error code number?"); change
-		 * = user_input.nextInt(); errorCode[0] = (byte)(change / 10);
-		 * errorCode[1] = (byte)(change % 10); errorCodeChange = true; } else if
-		 * (changeReq == 3) { System.out.println("Please type a new message?");
-		 * String mesg = user_input.next(); mesgChange = true; } else if
-		 * (changeReq == 6) { notReaday = false; } else {
-		 * System.out.println("Invalid Entry"); } } } break;
-		 */
-		case 3:
-		// change port
-		{
-
-			System.out.println("Simulate sending a Packet from different port");
-			packetSim = true;
-			portChange = true;
-			System.out.println("Choose a Packet to change:");
-			// System.out.println("1. REQUEST Packet");
-			System.out.println("2. DATA Packet");
-			System.out.println("3. ACK Packet");
-			changeReq = user_input.nextInt();
-			while (changeReq != 2 && changeReq != 3) {
-				System.out.println("please enter an valid number");
-				changeReq = user_input.nextInt();
-			}
-
-			packetType = changeReq;
-			System.out
-					.println("Which Block you want to do Unknown Port Simulating(type a number)");
-			blockBumber = user_input.nextInt();
-		}
-			break;
-		case 4: { // duplicate packet.
-			duplicateSim = true;
-			System.out.println("Simulate duplicate Packet");
-			System.out.println("Choose a Packet to change:");
-			System.out.println("1. REQUEST Packet");
-			System.out.println("2. DATA Packet");
-			System.out.println("3. ACK Packet");
-			changeReq = user_input.nextInt();
-			while (changeReq != 2 && changeReq != 3 && changeReq != 1) {
-				System.out.println("please enter an valid number");
-				changeReq = user_input.nextInt();
-			}
-			if (changeReq == 1) {
+				.println("mode 3: Modify the string mode");
 				System.out
-						.println("Our project will accepted duplicate request, but it will only accepted duplicate read request, for duplicate, Server will return an error");
-				System.out.println("So we are not simulating this situation");
-			}
-			packetType = changeReq;
-			System.out
-					.println("Which Block you want to duplicate(type a number)");
-			blockBumber = user_input.nextInt();
-		}
-			break;
-		case 5: { // lose a packet
-			lostPacketSim = true;
-			System.out.println("Simulate losing packet");
-			System.out.println("Choose a Packet to change:");
-			System.out.println("1. REQUEST Packet");
-			System.out.println("2. DATA Packet");
-			System.out.println("3. ACK Packet");
-			changeReq = user_input.nextInt();
-			while (changeReq != 2 && changeReq != 3 && changeReq != 1) {
-				System.out.println("please enter an valid number");
-				changeReq = user_input.nextInt();
-			}
-			packetType = changeReq;
-			if (packetType != 1) {
+				.println("mode 4: Modify the data packet to be larger than 516 bytes");
 				System.out
-						.println("Which Block you want to lost(type a number)");
-				blockBumber = user_input.nextInt();
-			}
-
-		}
-			break;
-		case 6: { // delay
-			deplayPacketSim = true;
-			System.out.println("Simulate delay packet");
-			System.out.println("Choose a Packet to change:");
-			System.out.println("1. REQUEST Packet");
-			System.out.println("2. DATA Packet");
-			System.out.println("3. ACK Packet");
-			changeReq = user_input.nextInt();
-			while (changeReq != 2 && changeReq != 3 && changeReq != 1) {
-				System.out.println("please enter an valid number");
-				changeReq = user_input.nextInt();
-			}
-			packetType = changeReq;
-			if (packetType != 1) {
+				.println("mode 5: Modify the packet size to be smaller than 4 bytes");
 				System.out
-						.println("Which Block you want to depaly(type a number)");
-				blockBumber = user_input.nextInt();
+				.println("mode 6: Modify the ack packet to be larger than 4 bytes");
+				System.out
+				.println("mode 7: Remove File name from the packet");
+				System.out
+				.println("mode 8: Change the port number - Invalid TID");
+				
+				System.out
+						.println("stop : close the client (waits until current transmissions are done.");
+			} else if (command.equals("stop")) {
+				System.out
+						.println("Stopping simulator (when current transfers finish)");
+				errorSimulator.stop();
+			}else if (command.equalsIgnoreCase(ErrorCommands.NORMAL.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.NORMAL;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_CHANGE_OPCODE.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_CHANGE_OPCODE;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_MODE_DELIMITER.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_REMOVE_MODE_DELIMITER;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_MODIFY_MODE.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_MODIFY_MODE;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_DATAPACKET.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_APPEND_DATAPACKET;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_SHRINK_PACKET.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_SHRINK_PACKET;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_ACK.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_APPEND_ACK;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_REMOVE_FILENAME;
+			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_INVALID_TID.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_INVALID_TID;				
+			}else {
+				System.out
+						.println("Invalid command. These are the available commands:");
+				System.out.println("    help: prints this help menu");
+				System.out
+						.println("    stop: stop the error simulator (when current transfers finish)");
+				System.out.println("mode 0 : change packet opcode ");
+				System.out
+						.println("mode 1: Remove the byte '0' after the file name");
+				System.out
+				.println("mode 2: Remove the byte '0' after the mode");
+				System.out
+				.println("mode 3: Modify the string mode");
+				System.out
+				.println("mode 4: Modify the data packet to be larger than 516 bytes");
+				System.out
+				.println("mode 5: Modify the packet size to be smaller than 4 bytes");
+				System.out
+				.println("mode 6: Modify the ack packet to be larger than 4 bytes");
+				System.out
+				.println("mode 7: Remove File name from the packet");
+				System.out
+				.println("mode 8: Change the port number - Invalid TID");
+				
 			}
-			System.out.println("How long you want delay:");
-			System.out.println("Note: Maxium delay is 7999");
-			System.out
-					.println("delay big than the maxium will affect file transfer");
-			delayTime = user_input.nextInt();
-
 		}
-			break;
-		}
-		System.out.println("TftpErrorSimulator start:");
-		s.passOnTFTP();
-	} // end run
 	
+	}
+
+	synchronized public void incrementThreadCount() {
+		threadCount++;
+	}
+
+	synchronized public void decrementThreadCount() {
+		threadCount--;
+	}
+
+	synchronized public int getThreadCount() {
+		return threadCount;
+	}
+
+	public void stop() {
+		requestReceive.getSocket().close();
+
+		// wait for threads to finish
+		while (getThreadCount() > 0) {
+			try {
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				// Ignore errors
+			}
+		}
+		System.out.println("Error simulator closed.");
+		System.exit(0);
+	}
+
+	private class RequestReceiveThread extends Thread {
+		private DatagramSocket socket;
+
+		public RequestReceiveThread() {
+			try {
+				socket = new DatagramSocket(clientRequestPort);
+			} catch (SocketException e) {
+				System.out.println("Count not bind to port: "
+						+ clientRequestPort);
+				System.exit(1);
+			}
+		}
+
+		public void run() {
+			try {
+				incrementThreadCount();
+
+				while (!socket.isClosed()) {
+					DatagramPacket dp = TftpPacket.createDatagramForReceiving();
+					socket.receive(dp);
+					new ForwardThread(dp).start();
+				}
+			} catch (IOException e) {
+				// Probably just closing the thread down
+			}
+
+			decrementThreadCount();
+		}
+
+		public DatagramSocket getSocket() {
+			return socket;
+		}
+	}
+
+	private class ForwardThread extends Thread {
+		private DatagramSocket socket;
+		private int timeoutMs = 10000; // 10 second receive timeout
+		private DatagramPacket requestPacket;
+		private InetAddress clientAddress;
+		private int clientPort, serverPort;
+
+		ForwardThread(DatagramPacket requestPacket) {
+			this.requestPacket = requestPacket;
+		}
+
+		public void run() {
+			try {
+				incrementThreadCount();
+
+				socket = new DatagramSocket();
+				socket.setSoTimeout(timeoutMs);
+				clientAddress = requestPacket.getAddress();
+				clientPort = requestPacket.getPort();
+
+				// Send request to server
+				System.out.println("Sending request to server ");
+				
+				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
+						requestPacket.getLength(), serverAddress,
+						serverRequestPort);
+				if(errorCommand == ErrorCommands.ERROR_CHANGE_OPCODE)
+					socket.send(changeOpcode(dp));
+				else if(errorCommand == ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER)
+					socket.send(modifyFileNameTrailingByte(dp));
+				else if(errorCommand == ErrorCommands.ERROR_REMOVE_FILENAME)
+					socket.send(removeFileName(dp));
+				else if(errorCommand == ErrorCommands.ERROR_REMOVE_MODE_DELIMITER)
+					socket.send(removeModeTrailingByte(dp));
+				else if(errorCommand == ErrorCommands.ERROR_MODIFY_MODE)
+					socket.send(modifyMode(dp));
+				else
+					socket.send(dp);
+				
+				
+					
+
+				// Receive from server
+				System.out.println("Receiving request from server");
+				dp = TftpPacket.createDatagramForReceiving();
+				socket.receive(dp);
+				serverPort = dp.getPort();
+				
+
+				while (true) {
+					// Forward to client
+					System.out.println("Forwarding packet to client");
+					dp = new DatagramPacket(dp.getData(), dp.getLength(),
+							clientAddress, clientPort);
+					if(errorCommand == ErrorCommands.ERROR_APPEND_DATAPACKET && TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
+							&& ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3)
+					{
+						socket.send(appendData(dp));
+					}else if(errorCommand == ErrorCommands.ERROR_SHRINK_PACKET && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+						socket.send(shrinkData(dp));
+					}else if(errorCommand == ErrorCommands.ERROR_APPEND_ACK && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+						socket.send(appendAckPacket(dp));
+					}else if(errorCommand == ErrorCommands.ERROR_INVALID_TID){
+						if((TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket && ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3) ||
+								(TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket && ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3))
+						{
+							DatagramSocket invalidSocket = new DatagramSocket();
+							invalidSocket.setSoTimeout(timeoutMs);
+							invalidSocket.send((dp));
+						}
+						socket.send(dp);
+						
+					}else{
+						socket.send(dp);
+					}
+
+					// Wait for response from client
+					System.out.println("Waiting to get packet from client");
+					dp = TftpPacket.createDatagramForReceiving();
+					socket.receive(dp);
+
+					// Forward to server
+					System.out.println("Forwarding packet to server");
+					dp = new DatagramPacket(dp.getData(), dp.getLength(),
+							serverAddress, serverPort);
+					if(errorCommand == ErrorCommands.ERROR_APPEND_DATAPACKET && TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
+							&& ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3)
+					{
+						socket.send(appendData(dp));
+					}else if(errorCommand == ErrorCommands.ERROR_SHRINK_PACKET && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+						socket.send(shrinkData(dp));
+					}else if(errorCommand == ErrorCommands.ERROR_APPEND_ACK && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+						socket.send(appendAckPacket(dp));
+					}else if(errorCommand == ErrorCommands.ERROR_INVALID_TID){
+						if((TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket && ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3) ||
+								(TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket && ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3))
+						{
+							DatagramSocket invalidSocket = new DatagramSocket();
+							invalidSocket.setSoTimeout(timeoutMs);
+							invalidSocket.send(dp);
+						}
+						socket.send(dp);
+						
+					}else{
+						socket.send(dp);
+					}
+						
+
+					// Receive from server
+					System.out.println("Waiting to get packet from server");
+					dp = TftpPacket.createDatagramForReceiving();
+					socket.receive(dp);
+				}
+			} catch (SocketTimeoutException e) {
+				System.out
+						.println("Socket timeout: closing thread. (Transfer may have simply finished)");
+			} catch (IOException e) {
+				System.out.println("Socket error: closing thread.");
+			}
+
+			decrementThreadCount();
+		}
+	}
+
+	// Error - change the opcode to something other than 01,02, 03,04 or 05 
+	// in the request or data packet
 	
+	private DatagramPacket changeOpcode(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		data[0] = 1;
+		data[1] = 8;
+		return new DatagramPacket(data, data.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - Remove the trailing 0th byte after the mode in the request packet
+	private DatagramPacket removeModeTrailingByte(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		int i = 1;
+		while (data[++i] != 0 && i < data.length);
+		data[i+=6] = (byte)0xFF;
+		return new DatagramPacket(data, data.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - Mod the trailing 0th byte after the file name in the request packet
+	private DatagramPacket modifyFileNameTrailingByte(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		// find the index of the 0th byte after filename
+		int i = 1;
+		while (data[++i] != 0 && i < data.length)
+			;
+		data[i] = 2;
+		return new DatagramPacket(data, data.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - Change to invalid mode (other than NetAscii and Octet) in the
+	// request packet
+	private DatagramPacket modifyMode(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		// find the index of the 0th byte after filename
+		int i = 1;
+		while (data[++i] != 0 && i < data.length);
+		byte[] invalidMode = ("acctet").getBytes();
+		for (int index = 0; index < invalidMode.length; index++)
+			data[i + index] = invalidMode[index];
+		return new DatagramPacket(data, data.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - Remove the file name in the request packet
+	private DatagramPacket removeFileName(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		// find the index of the 0th byte after filename
+		int i = 1;
+		while (data[++i] != 0 && i < data.length)
+			;
+		byte[] modData = new byte[data.length - (i - 2)];
+		// copy the op code
+		System.arraycopy(data, 0, modData, 0, 2);
+		// copy the rest of the data ignoring filename
+		System.arraycopy(data, i, modData, 2, modData.length - 2);
+		return new DatagramPacket(modData, modData.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - change the data packet to be larger than 516 bytes (including
+	// opcode and block number)
+	private DatagramPacket appendData(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		// Now append extra data
+		for (int i = 516; i < data.length; i++)
+			data[i] = (byte) 0xFF;
+		return new DatagramPacket(data, data.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - change the data/ack packet to be smaller than 4 bytes
+	private DatagramPacket shrinkData(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		byte[] modData = new byte[2];
+		modData[0] = data[0];
+		modData[1] = data[1];
+		return new DatagramPacket(modData, modData.length, packet.getAddress(),
+				packet.getPort());
+	}
+
+	// Error - change the ack packet to be larger than 4 bytes
+	private DatagramPacket appendAckPacket(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		byte[] modData = new byte[data.length + 2];
+		System.arraycopy(data, 0, modData, 0, data.length);
+		modData[data.length] = data[0];
+		modData[data.length + 1] = data[1];
+		return new DatagramPacket(modData, modData.length, packet.getAddress(),
+				packet.getPort());
+	}
 }
