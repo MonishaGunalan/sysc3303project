@@ -28,7 +28,7 @@ import sysc3303.project.packets.TftpErrorPacket.ErrorType;
 
 public class TftpClient {
 	protected DatagramSocket socket;
-	protected int serverPort = 68;
+	protected int serverPort = 6800;
 	protected TftpRequestPacket.Mode defaultTransferMode = TftpRequestPacket.Mode.ASCII;
 	protected String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";

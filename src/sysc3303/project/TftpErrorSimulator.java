@@ -21,17 +21,11 @@ import sysc3303.project.packets.TftpPacket;
 public class TftpErrorSimulator {
 
 	private enum ErrorCommands {
-		NORMAL("normal"), 
-		ERROR_CHANGE_OPCODE("mode 0"), 
-		ERROR_REMOVE_FILENAME_DELIMITER("mode 1"),
-		ERROR_REMOVE_MODE_DELIMITER("mode 2"),
-		ERROR_MODIFY_MODE("mode 3"),
-		ERROR_APPEND_DATAPACKET("mode 4"),
-		ERROR_SHRINK_PACKET("mode 5"),
-		ERROR_APPEND_ACK("mode 6"),
-		ERROR_REMOVE_FILENAME("mode 7"),
-		ERROR_INVALID_TID("mode 8");
-		
+		NORMAL("normal"), ERROR_CHANGE_OPCODE("mode 0"), ERROR_REMOVE_FILENAME_DELIMITER(
+				"mode 1"), ERROR_REMOVE_MODE_DELIMITER("mode 2"), ERROR_MODIFY_MODE(
+				"mode 3"), ERROR_APPEND_DATAPACKET("mode 4"), ERROR_SHRINK_PACKET(
+				"mode 5"), ERROR_APPEND_ACK("mode 6"), ERROR_REMOVE_FILENAME(
+				"mode 7"), ERROR_INVALID_TID("mode 8");
 
 		/**
 		 * @param text
@@ -53,10 +47,9 @@ public class TftpErrorSimulator {
 		}
 	}
 
-
 	protected InetAddress serverAddress;
-	protected int serverRequestPort = 69;
-	protected int clientRequestPort = 68;
+	protected int serverRequestPort = 6900;
+	protected int clientRequestPort = 6800;
 	protected int threadCount = 0;
 	protected boolean stopping = false;
 	protected RequestReceiveThread requestReceive;
@@ -102,47 +95,61 @@ public class TftpErrorSimulator {
 				System.out
 						.println("mode 1: Remove the byte '0' after the file name");
 				System.out
-				.println("mode 2: Remove the byte '0' after the mode");
+						.println("mode 2: Remove the byte '0' after the mode");
+				System.out.println("mode 3: Modify the string mode");
 				System.out
-				.println("mode 3: Modify the string mode");
+						.println("mode 4: Modify the data packet to be larger than 516 bytes");
 				System.out
-				.println("mode 4: Modify the data packet to be larger than 516 bytes");
+						.println("mode 5: Modify the packet size to be smaller than 4 bytes");
 				System.out
-				.println("mode 5: Modify the packet size to be smaller than 4 bytes");
+						.println("mode 6: Modify the ack packet to be larger than 4 bytes");
+				System.out.println("mode 7: Remove File name from the packet");
 				System.out
-				.println("mode 6: Modify the ack packet to be larger than 4 bytes");
-				System.out
-				.println("mode 7: Remove File name from the packet");
-				System.out
-				.println("mode 8: Change the port number - Invalid TID");
-				
+						.println("mode 8: Change the port number - Invalid TID");
+
 				System.out
 						.println("stop : close the client (waits until current transmissions are done.");
 			} else if (command.equals("stop")) {
 				System.out
 						.println("Stopping simulator (when current transfers finish)");
 				errorSimulator.stop();
-			}else if (command.equalsIgnoreCase(ErrorCommands.NORMAL.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.NORMAL.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.NORMAL;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_CHANGE_OPCODE.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_CHANGE_OPCODE
+							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_CHANGE_OPCODE;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER
+							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_MODE_DELIMITER.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_MODE_DELIMITER
+							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_REMOVE_MODE_DELIMITER;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_MODIFY_MODE.toString())) {
+			} else if (command.equalsIgnoreCase(ErrorCommands.ERROR_MODIFY_MODE
+					.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_MODIFY_MODE;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_DATAPACKET.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_DATAPACKET
+							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_APPEND_DATAPACKET;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_SHRINK_PACKET.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_SHRINK_PACKET
+							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_SHRINK_PACKET;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_ACK.toString())) {
+			} else if (command.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_ACK
+					.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_APPEND_ACK;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME.toString())) {
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME
+							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_REMOVE_FILENAME;
-			}else if (command.equalsIgnoreCase(ErrorCommands.ERROR_INVALID_TID.toString())) {
-				errorSimulator.errorCommand = ErrorCommands.ERROR_INVALID_TID;				
-			}else {
+			} else if (command.equalsIgnoreCase(ErrorCommands.ERROR_INVALID_TID
+					.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_INVALID_TID;
+			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
 				System.out.println("    help: prints this help menu");
@@ -152,23 +159,21 @@ public class TftpErrorSimulator {
 				System.out
 						.println("mode 1: Remove the byte '0' after the file name");
 				System.out
-				.println("mode 2: Remove the byte '0' after the mode");
+						.println("mode 2: Remove the byte '0' after the mode");
+				System.out.println("mode 3: Modify the string mode");
 				System.out
-				.println("mode 3: Modify the string mode");
+						.println("mode 4: Modify the data packet to be larger than 516 bytes");
 				System.out
-				.println("mode 4: Modify the data packet to be larger than 516 bytes");
+						.println("mode 5: Modify the packet size to be smaller than 4 bytes");
 				System.out
-				.println("mode 5: Modify the packet size to be smaller than 4 bytes");
+						.println("mode 6: Modify the ack packet to be larger than 4 bytes");
+				System.out.println("mode 7: Remove File name from the packet");
 				System.out
-				.println("mode 6: Modify the ack packet to be larger than 4 bytes");
-				System.out
-				.println("mode 7: Remove File name from the packet");
-				System.out
-				.println("mode 8: Change the port number - Invalid TID");
-				
+						.println("mode 8: Change the port number - Invalid TID");
+
 			}
 		}
-	
+
 	}
 
 	synchronized public void incrementThreadCount() {
@@ -254,59 +259,62 @@ public class TftpErrorSimulator {
 
 				// Send request to server
 				System.out.println("Sending request to server ");
-				
+
 				DatagramPacket dp = new DatagramPacket(requestPacket.getData(),
 						requestPacket.getLength(), serverAddress,
 						serverRequestPort);
-				if(errorCommand == ErrorCommands.ERROR_CHANGE_OPCODE)
+				if (errorCommand == ErrorCommands.ERROR_CHANGE_OPCODE)
 					socket.send(changeOpcode(dp));
-				else if(errorCommand == ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER)
+				else if (errorCommand == ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER)
 					socket.send(modifyFileNameTrailingByte(dp));
-				else if(errorCommand == ErrorCommands.ERROR_REMOVE_FILENAME)
+				else if (errorCommand == ErrorCommands.ERROR_REMOVE_FILENAME)
 					socket.send(removeFileName(dp));
-				else if(errorCommand == ErrorCommands.ERROR_REMOVE_MODE_DELIMITER)
+				else if (errorCommand == ErrorCommands.ERROR_REMOVE_MODE_DELIMITER)
 					socket.send(removeModeTrailingByte(dp));
-				else if(errorCommand == ErrorCommands.ERROR_MODIFY_MODE)
+				else if (errorCommand == ErrorCommands.ERROR_MODIFY_MODE)
 					socket.send(modifyMode(dp));
 				else
 					socket.send(dp);
-				
-				
-					
 
 				// Receive from server
 				System.out.println("Receiving request from server");
 				dp = TftpPacket.createDatagramForReceiving();
 				socket.receive(dp);
 				serverPort = dp.getPort();
-				
 
 				while (true) {
 					// Forward to client
 					System.out.println("Forwarding packet to client");
 					dp = new DatagramPacket(dp.getData(), dp.getLength(),
 							clientAddress, clientPort);
-					if(errorCommand == ErrorCommands.ERROR_APPEND_DATAPACKET && TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
-							&& ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3)
-					{
+					if (errorCommand == ErrorCommands.ERROR_APPEND_DATAPACKET
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
+							&& ((TftpDataPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == 3) {
 						socket.send(appendData(dp));
-					}else if(errorCommand == ErrorCommands.ERROR_SHRINK_PACKET && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
-							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_PACKET
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == 2) {
 						socket.send(shrinkData(dp));
-					}else if(errorCommand == ErrorCommands.ERROR_APPEND_ACK && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
-							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+					} else if (errorCommand == ErrorCommands.ERROR_APPEND_ACK
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == 2) {
 						socket.send(appendAckPacket(dp));
-					}else if(errorCommand == ErrorCommands.ERROR_INVALID_TID){
-						if((TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket && ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3) ||
-								(TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket && ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3))
-						{
+					} else if (errorCommand == ErrorCommands.ERROR_INVALID_TID) {
+						if ((TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket && ((TftpAckPacket) TftpPacket
+								.createFromDatagram(dp)).getBlockNumber() == 3)
+								|| (TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket && ((TftpDataPacket) TftpPacket
+										.createFromDatagram(dp))
+										.getBlockNumber() == 3)) {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
 						}
 						socket.send(dp);
-						
-					}else{
+
+					} else {
 						socket.send(dp);
 					}
 
@@ -319,30 +327,36 @@ public class TftpErrorSimulator {
 					System.out.println("Forwarding packet to server");
 					dp = new DatagramPacket(dp.getData(), dp.getLength(),
 							serverAddress, serverPort);
-					if(errorCommand == ErrorCommands.ERROR_APPEND_DATAPACKET && TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
-							&& ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3)
-					{
+					if (errorCommand == ErrorCommands.ERROR_APPEND_DATAPACKET
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
+							&& ((TftpDataPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == 3) {
 						socket.send(appendData(dp));
-					}else if(errorCommand == ErrorCommands.ERROR_SHRINK_PACKET && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
-							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_PACKET
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == 2) {
 						socket.send(shrinkData(dp));
-					}else if(errorCommand == ErrorCommands.ERROR_APPEND_ACK && TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
-							&& ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 2){
+					} else if (errorCommand == ErrorCommands.ERROR_APPEND_ACK
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == 2) {
 						socket.send(appendAckPacket(dp));
-					}else if(errorCommand == ErrorCommands.ERROR_INVALID_TID){
-						if((TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket && ((TftpAckPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3) ||
-								(TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket && ((TftpDataPacket)TftpPacket.createFromDatagram(dp)).getBlockNumber() == 3))
-						{
+					} else if (errorCommand == ErrorCommands.ERROR_INVALID_TID) {
+						if ((TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket && ((TftpAckPacket) TftpPacket
+								.createFromDatagram(dp)).getBlockNumber() == 3)
+								|| (TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket && ((TftpDataPacket) TftpPacket
+										.createFromDatagram(dp))
+										.getBlockNumber() == 3)) {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send(dp);
 						}
 						socket.send(dp);
-						
-					}else{
+
+					} else {
 						socket.send(dp);
 					}
-						
 
 					// Receive from server
 					System.out.println("Waiting to get packet from server");
@@ -360,9 +374,9 @@ public class TftpErrorSimulator {
 		}
 	}
 
-	// Error - change the opcode to something other than 01,02, 03,04 or 05 
+	// Error - change the opcode to something other than 01,02, 03,04 or 05
 	// in the request or data packet
-	
+
 	private DatagramPacket changeOpcode(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		data[0] = 1;
@@ -375,13 +389,15 @@ public class TftpErrorSimulator {
 	private DatagramPacket removeModeTrailingByte(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		int i = 1;
-		while (data[++i] != 0 && i < data.length);
-		data[i+=6] = (byte)0xFF;
+		while (data[++i] != 0 && i < data.length)
+			;
+		data[i += 6] = (byte) 0xFF;
 		return new DatagramPacket(data, data.length, packet.getAddress(),
 				packet.getPort());
 	}
 
-	// Error - Mod the trailing 0th byte after the file name in the request packet
+	// Error - Mod the trailing 0th byte after the file name in the request
+	// packet
 	private DatagramPacket modifyFileNameTrailingByte(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
@@ -399,7 +415,8 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
 		int i = 1;
-		while (data[++i] != 0 && i < data.length);
+		while (data[++i] != 0 && i < data.length)
+			;
 		byte[] invalidMode = ("acctet").getBytes();
 		for (int index = 0; index < invalidMode.length; index++)
 			data[i + index] = invalidMode[index];
