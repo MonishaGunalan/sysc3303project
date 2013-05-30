@@ -1,10 +1,10 @@
-package sysc3303.project.packets;
+package sysc3303.project.common;
 
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 
-import sysc3303.project.packets.TftpRequestPacket.Action;
-import sysc3303.project.packets.TftpRequestPacket.Mode;
+import sysc3303.project.common.TftpRequestPacket.Action;
+import sysc3303.project.common.TftpRequestPacket.Mode;
 
 /**
  * @author Korey Conway (100838924)
@@ -111,12 +111,13 @@ public abstract class TftpPacket {
 			int packetLength) throws IllegalArgumentException {
 		// Check that the packet length makes sense and is long enough
 		if (packetData.length < packetLength || packetLength < MIN_LENGTH) {
-			throw new IllegalArgumentException("packet Length is less than minimum length");
+			throw new IllegalArgumentException(
+					"packet Length is less than minimum length");
 		}
 
 		// First should always be 0
 		if (packetData[0] != 0) {
-			throw new IllegalArgumentException("Packet data doesn't start with 0");
+			throw new IllegalArgumentException("Invalid opcode");
 		}
 
 		switch (packetData[1]) {
@@ -131,7 +132,7 @@ public abstract class TftpPacket {
 		case 5:
 			return TftpErrorPacket.createFromBytes(packetData, packetLength);
 		default:
-			throw new IllegalArgumentException("Invalid OP Code " + packetData[1]);
+			throw new IllegalArgumentException("Invalid opcode");
 		}
 	}
 
@@ -143,23 +144,21 @@ public abstract class TftpPacket {
 	 * @return a DatagramPacket for receiving
 	 */
 	public static DatagramPacket createDatagramForReceiving() {
-		return new DatagramPacket(new byte[MAX_LENGTH * 2], MAX_LENGTH *2);
+		return new DatagramPacket(new byte[MAX_LENGTH * 2], MAX_LENGTH * 2);
 	}
 
 	/**
 	 * Generate a UDP datagram packet from the current data. This is a
 	 * convenience method.
 	 * 
-	 * @param destinationAddress
-	 * @param destinationPort
+	 * @param remoteAddress
+	 * @param remotePort
 	 * @return a DatagramPacket ready to be sent through a socket
-	 * @throws IllegalArgumentException
 	 */
-	public DatagramPacket generateDatagram(InetAddress destinationAddress,
-			int destinationPort) throws IllegalArgumentException {
+	public DatagramPacket generateDatagram(InetAddress remoteAddress,
+			int remotePort) {
 		byte data[] = this.generateData();
-		return new DatagramPacket(data, data.length, destinationAddress,
-				destinationPort);
+		return new DatagramPacket(data, data.length, remoteAddress, remotePort);
 	}
 
 	/**
@@ -167,7 +166,6 @@ public abstract class TftpPacket {
 	 * by extending classes.
 	 * 
 	 * @return the byte array of the packet
-	 * @throws IllegalArgumentException
 	 */
 	public abstract byte[] generateData();
 
@@ -176,7 +174,6 @@ public abstract class TftpPacket {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @throws IllegalArgumentException
 	 */
 	public String toString() {
 		byte[] packetBytes = this.generateData();
@@ -186,5 +183,4 @@ public abstract class TftpPacket {
 		}
 		return packetString.toString();
 	}
-
 }

@@ -1,4 +1,4 @@
-package sysc3303.project.packets;
+package sysc3303.project.common;
 
 /**
  * @author Korey Conway (100838924)
@@ -7,7 +7,7 @@ package sysc3303.project.packets;
  */
 
 public class TftpAckPacket extends TftpPacket {
-	private static final int OP_CODE = 3; // The TFTP op code
+	private static final int OP_CODE = 3; // The TFTP opcode
 	private static final int MIN_BLOCK_NUMBER = 0; // minimum block number
 	private static final int MAX_BLOCK_NUMBER = 0XFFFF; // maximum block number
 	private static final int PACKET_LENGTH = 4; // exact length packet should be
@@ -41,12 +41,12 @@ public class TftpAckPacket extends TftpPacket {
 			throws IllegalArgumentException {
 		// Make sure data is not null and is long enough
 		if (packetData == null || packetData.length < PACKET_LENGTH || packetLength != PACKET_LENGTH) {
-			throw new IllegalArgumentException("Incorrect packet data size");
+			throw new IllegalArgumentException("Incorrect packet length");
 		}
 		
 		// Make sure we have the right op code
 		if (packetData[0] != 0 || packetData[1] != OP_CODE) {
-			throw new IllegalArgumentException("Incorrect OP code");
+			throw new IllegalArgumentException("Incorrect opcode");
 		}
 
 		int blockNumber = (packetData[2] << 8) + packetData[3];
@@ -66,7 +66,7 @@ public class TftpAckPacket extends TftpPacket {
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @see sysc3303.project.packets.TftpPacket#generateData()
+	 * @see sysc3303.project.common.TftpPacket#generateData()
 	 */
 	@Override
 	public byte[] generateData() {

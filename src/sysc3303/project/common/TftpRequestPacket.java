@@ -1,4 +1,4 @@
-package sysc3303.project.packets;
+package sysc3303.project.common;
 
 import java.io.ByteArrayOutputStream;
 
@@ -138,7 +138,7 @@ public class TftpRequestPacket extends TftpPacket {
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @see sysc3303.project.packets.TftpPacket.Packet#generateData()
+	 * @see sysc3303.project.common.TftpPacket#generateData()
 	 */
 	@Override
 	public byte[] generateData() {
@@ -172,7 +172,7 @@ public class TftpRequestPacket extends TftpPacket {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @see sysc3303.project.packets.TftpPacket.Packet#toString()
+	 * @see sysc3303.project.common.TftpPacket.Packet#toString()
 	 */
 	@Override
 	public String toString() {

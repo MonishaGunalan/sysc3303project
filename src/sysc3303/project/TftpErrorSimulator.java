@@ -9,9 +9,9 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-import sysc3303.project.packets.TftpAckPacket;
-import sysc3303.project.packets.TftpDataPacket;
-import sysc3303.project.packets.TftpPacket;
+import sysc3303.project.common.TftpAckPacket;
+import sysc3303.project.common.TftpDataPacket;
+import sysc3303.project.common.TftpPacket;
 
 /**
  * @author Korey Conway (100838924)

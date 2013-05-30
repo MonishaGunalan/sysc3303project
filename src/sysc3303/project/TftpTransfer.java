@@ -1,6 +1,7 @@
 package sysc3303.project;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -9,52 +10,60 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 
-import sysc3303.project.packets.TftpAckPacket;
-import sysc3303.project.packets.TftpDataPacket;
-import sysc3303.project.packets.TftpErrorPacket;
-import sysc3303.project.packets.TftpErrorPacket.ErrorType;
-import sysc3303.project.packets.TftpPacket;
-import sysc3303.project.packets.TftpRequestPacket;
+import sysc3303.project.common.TftpAckPacket;
+import sysc3303.project.common.TftpDataPacket;
+import sysc3303.project.common.TftpErrorPacket;
+import sysc3303.project.common.TftpPacket;
+import sysc3303.project.common.TftpRequestPacket;
+import sysc3303.project.common.TftpErrorPacket.ErrorType;
 
-class TftpFileTransfer implements Runnable {
+abstract class TftpTransfer implements Runnable {
 	private static final int SOCKET_TIMEOUT = 10000; // 10 seconds
 	private static final int MAX_TIMEOUTS = 5;
 
 	private DatagramSocket socket;
 	private File file;
 	private int remotePort;
+	private int requestPort = 69;
 	private InetAddress remoteAddress;
-	private Direction direction;
 	private int previousSoTimeout = -1;
 	private int currentBlock = 0;
-	private int timeouts = 0; // count how many times we have timed out
-	private Mode mode;
+	private Scope scope;
+	private TftpRequestPacket requestPacket;
 
-	enum Direction {
-		SEND, RECEIVE
+	private class TftpAbortException extends Exception {
+		private static final long serialVersionUID = -2879110457073551679L;
+
+		TransferAbortException(String message) {
+			super(message);
+		}
 	}
 
-	enum Mode {
+	enum Scope {
 		CLIENT, SERVER
 	}
 
-	public TftpFileTransfer(Mode mode) {
-		if (null == mode) {
+	TftpTransfer(Scope scope) {
+		if (null == scope) {
 			throw new IllegalArgumentException(
 					"Mode must be either ClIENT or SERVER");
 		}
-		this.mode = mode;
+		this.scope = scope;
 	}
 
-	public TftpFileTransfer setSocket(DatagramSocket socket)
-			throws SocketException {
+	TftpTransfer setRequestPacket(TftpRequestPacket requestPacket) {
+		this.requestPacket = requestPacket;
+		return this;
+	}
+
+	TftpTransfer setSocket(DatagramSocket socket) throws SocketException {
 		this.socket = socket;
 		this.previousSoTimeout = socket.getSoTimeout();
 		socket.setSoTimeout(SOCKET_TIMEOUT);
 		return this;
 	}
 
-	public TftpFileTransfer setRemote(InetAddress remoteAddress, int remotePort)
+	TftpTransfer setRemote(InetAddress remoteAddress, int remotePort)
 			throws IllegalArgumentException {
 		if (remoteAddress == null || remotePort <= 0) {
 			throw new IllegalArgumentException();
@@ -64,7 +73,7 @@ class TftpFileTransfer implements Runnable {
 		return this;
 	}
 
-	public TftpFileTransfer setFile(File file) throws IllegalArgumentException {
+	TftpTransfer setFile(File file) throws IllegalArgumentException {
 		if (file == null) {
 			throw new IllegalArgumentException();
 		}
@@ -72,23 +81,44 @@ class TftpFileTransfer implements Runnable {
 		return this;
 	}
 
-	public TftpFileTransfer setDirection(Direction direction)
-			throws IllegalArgumentException {
-		if (direction == null) {
-			throw new IllegalArgumentException();
-		}
-		this.direction = direction;
-		return this;
-	}
-
 	public void run() {
-		// TODO validate remote address and port, and socket, and file, and
-		// direction
+		// TODO validate all attributes
 
-		if (direction == Direction.RECEIVE) {
-			this.receiveFile();
-		} else {
-			this.sendFile();
+		// check if we are sending or receiving
+		boolean isReceiving = ((scope == Scope.CLIENT && requestPacket
+				.isReadRequest()) || (scope == Scope.SERVER && !requestPacket
+				.isReadRequest()));
+
+		if (scope == Scope.SERVER && socket == null) {
+			try {
+				socket = new DatagramSocket();
+			} catch (SocketException e) {
+				System.out
+						.println("Failed to create socket: " + e.getMessage());
+				e.printStackTrace();
+				return;
+			}
+		}
+
+		// set/reset current block to 1
+		currentBlock = 1;
+
+		try {
+			if (isReceiving) {
+				this.receiveFile();
+			} else {
+				this.sendFile();
+			}
+		} catch (SocketTimeoutException e) {
+			System.out
+					.println("Remote end doesn't seem to want to talk to us anymore :(");
+		} catch (IOException e) {
+			System.out
+					.println("Somekind of IOException happened. Here's a stack trace dump:");
+			e.printStackTrace();
+		} catch (TransferAbortException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 		// Reset previous timeout
@@ -101,45 +131,201 @@ class TftpFileTransfer implements Runnable {
 		}
 	}
 
-	private boolean receiveFile() throws IOException {
+	private boolean receiveFile() throws IOException, TransferAbortException {
 		FileOutputStream stream = new FileOutputStream(file);
+		TftpPacket pk;
+		TftpDataPacket dataPk;
+		int timeouts = 0;
 
-		// Set the starting block
-		if (mode == Mode.CLIENT) {
-			currentBlock = 1;
-		} else {
-			currentBlock = 0;
+		// Server sends ack 0 when receiving
+		if (scope == Scope.SERVER) {
+			sendAck(0);
 		}
 
-		if (currentBlock == 0) {
-			sendAck(currentBlock); // TODO make this server only
+		while (true) {
+			try {
+				pk = receiveAckOrDataPacket();
+				timeouts = 0;
+			} catch (SocketTimeoutException e) {
+				// Increment timeout
+				timeouts++;
+
+				// Resend ack unless we are the client waiting for the first
+				// data packet from server
+				if(currentBlock == 1 && scope == Scope.SERVER) {
+					
+				}
+
+				continue;
+			}
+
+			if (pk instanceof TftpAckPacket) {
+				// ignore ack packet
+				continue;
+			}
+
+			dataPk = (TftpDataPacket) pk;
+			if (dataPk.getBlockNumber() < currentBlock) {
+				// duplicate data sent, send ack
+				sendAck(dataPk.getBlockNumber());
+				continue;
+			} else if (dataPk.getBlockNumber() > currentBlock) {
+				// ignore blocks that we aren't ready for
+				continue;
+			}
+
+			// Write data to file
+			stream.write(dataPk.getFileData());
+
+			// Send ack
+			sendAck(currentBlock);
+
+			if (dataPk.isLastDataPacket()) {
+				break;
+			}
+
 			currentBlock++;
 		}
 
-		// Receive a packet
-		TftpPacket pk = receivePacket();
-		if (pk == null) {
-			return false;
-		} else if (pk instanceof TftpAckPacket) {
-
-		} else {
-			// We have a data packet
-		}
-
-		return false;
+		// Close stream and return true for success!! :D
+		stream.close();
+		return true;
 	}
 
-	private void sendAck(int blockNumber) throws IOException {
+	private boolean sendFile() throws IOException, TransferAbortException {
+		FileInputStream stream = new FileInputStream(file);
+		byte[] data = new byte[TftpDataPacket.MAX_FILE_DATA_LENGTH];
+		int length;
+		boolean isLastDataPacket = false;
+
+		// Note: client must have already received ack 0
+
+		try {
+			do {
+				// Read from the file
+				length = stream.read(data);
+
+				if (length == -1) {
+					length = 0;
+				}
+
+				// Send the data packet
+				isLastDataPacket = sendDataAndWaitForAck(data, length);
+			} while (isLastDataPacket);
+
+			stream.close();
+			return true;
+		} catch (IllegalArgumentException e) {
+			stream.close();
+			return false;
+		}
+	}
+
+	private boolean sendDataAndWaitForAck(byte[] data, int length)
+			throws IOException, TransferAbortException {
+		// Send the data packet
+		TftpDataPacket dataPk = TftpPacket.createDataPacket(currentBlock, data,
+				length);
+		DatagramPacket dp = dataPk.generateDatagram(remoteAddress, remotePort);
+
+		socket.send(dp);
+		waitForAck(dp);
+
+		return !dataPk.isLastDataPacket();
+	}
+
+	private void waitForAck(DatagramPacket datagramToResend)
+			throws IOException, TransferAbortException {
+		TftpPacket pk;
+		int timeouts = 0;
+
+		// Wait to receive associated ack (resend data if need be)
+		while (true) {
+			// Get a packet but watch for number of times we timeout
+			while (true) {
+				try {
+					pk = receiveAckOrDataPacket();
+					timeouts = 0; // reset timeouts
+					break;
+				} catch (SocketTimeoutException e) {
+					timeouts++;
+					if (timeouts <= MAX_TIMEOUTS) {
+						// Resend last data packet and try again
+						socket.send(datagramToResend);
+						continue;
+					} else {
+						throw e;
+					}
+				}
+			}
+
+			if (pk instanceof TftpAckPacket) {
+				TftpAckPacket ackPk = (TftpAckPacket) pk;
+				if (ackPk.getBlockNumber() == currentBlock) {
+					return;
+				}
+			}
+		}
+	}
+
+	// private TftpDataPacket receiveData() throws IOException,
+	// TransferAbortException {
+	// TftpPacket pk;
+	// TftpDataPacket dataPk;
+	// int timeouts = 0;
+	//
+	// // Wait to receive next data packet, resend ack if needed
+	// while (true) {
+	// // Get a packet but watch for number of times we timeout
+	// while (true) {
+	// try {
+	// pk = receiveAckOrDataPacket();
+	// timeouts = 0; // reset timeouts
+	// break;
+	// } catch (SocketTimeoutException e) {
+	// timeouts++;
+	// if (timeouts <= MAX_TIMEOUTS) {
+	// // Resend last ack packet and try again
+	// sendAck(currentBlock - 1);
+	// continue;
+	// } else {
+	// throw e;
+	// }
+	// }
+	// }
+	//
+	// // Check if it is valid or if an error occurred
+	// if (pk instanceof TftpDataPacket) {
+	// dataPk = (TftpDataPacket) pk;
+	//
+	// // Check if this is the one we are waiting for
+	// if (dataPk.getBlockNumber() == currentBlock) {
+	// return dataPk;
+	// } else if (currentBlock > dataPk.getBlockNumber()) {
+	// // Send ack even though it is a duplicate packet
+	// sendAck(dataPk.getBlockNumber());
+	// }
+	//
+	// // Note: we ignore data packets ahead of the block we want
+	// }
+	//
+	// // Note: we ignore incoming ACK packets
+	// }
+	// }
+
+	private void sendAck(int blockNumber) throws IOException,
+			TransferAbortException {
 		try {
 			TftpAckPacket pk = TftpPacket.createAckPacket(blockNumber);
 			socket.send(pk.generateDatagram(remoteAddress, remotePort));
 		} catch (IllegalArgumentException e) {
-			System.out.println("Created a malformed TftpAckPacket.");
-			e.printStackTrace();
+			throw new TransferAbortException(
+					"Created a malformed TftpAckPacket. " + e.getMessage());
 		}
 	}
 
-	private TftpPacket receivePacket() throws IOException {
+	private TftpPacket receiveAckOrDataPacket() throws IOException,
+			TransferAbortException {
 		try {
 			while (true) { // Note: using while instead of recursing to reduce
 							// memory usage (and avoid stack overflow errors in
@@ -164,16 +350,24 @@ class TftpFileTransfer implements Runnable {
 
 				// Check if we got an error
 				if (pk instanceof TftpErrorPacket) {
-					if (((TftpErrorPacket) pk).shouldAbortTransfer()) {
+					TftpErrorPacket errorPk = (TftpErrorPacket) pk;
+					if (errorPk.shouldAbortTransfer()) {
 						// Return null to cause an abort
-						return null;
+						throw new TransferAbortException(
+								"Received a fatal error packet with message: "
+										+ errorPk.getErrorMessage());
 					} else {
 						// No need to abort, just ignore and restart receiving
+						System.out
+								.println("Received non-aborting error with message: "
+										+ errorPk.getErrorMessage());
 						continue;
 					}
 				} else if (pk instanceof TftpRequestPacket) {
 					// We received a request packet on a data transfer
 					sendIllegalOperationError("Seriously? This is a data transfer, not request listener. Check your destination port.");
+					throw new TransferAbortException(
+							"Illegal Operation Error: received request packet on data transfer port.");
 				}
 
 				// Return the packet
@@ -182,7 +376,8 @@ class TftpFileTransfer implements Runnable {
 		} catch (IllegalArgumentException e) {
 			// We received an unparsable packet, send error packet
 			sendIllegalOperationError(e.getMessage());
-			return null;
+			throw new TransferAbortException("Received an unparsable packet: "
+					+ e.getMessage());
 		}
 	}
 
@@ -220,13 +415,6 @@ class TftpFileTransfer implements Runnable {
 			e.printStackTrace();
 			return false;
 		}
-	}
-
-	private void sendFile() {
-		// FileInputStream stream = new FileInputStream(file);
-		// send next block
-
-		// receive ack
 	}
 
 	// try {

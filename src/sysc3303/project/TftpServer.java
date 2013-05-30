@@ -11,12 +11,14 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Scanner;
 
-import sysc3303.project.packets.TftpAckPacket;
-import sysc3303.project.packets.TftpDataPacket;
-import sysc3303.project.packets.TftpErrorPacket;
-import sysc3303.project.packets.TftpErrorPacket.ErrorType;
-import sysc3303.project.packets.TftpPacket;
-import sysc3303.project.packets.TftpRequestPacket;
+import sysc3303.project.TftpTransfer.TransferAbortException;
+import sysc3303.project.common.TftpAbortException;
+import sysc3303.project.common.TftpAckPacket;
+import sysc3303.project.common.TftpDataPacket;
+import sysc3303.project.common.TftpErrorPacket;
+import sysc3303.project.common.TftpPacket;
+import sysc3303.project.common.TftpRequestPacket;
+import sysc3303.project.common.TftpErrorPacket.ErrorType;
 
 /**
  * @author Korey Conway (100838924)
@@ -174,7 +176,8 @@ public class TftpServer {
 						// We got an invalid packet
 						// Open new socket and send error packet response
 						DatagramSocket errorSocket = new DatagramSocket();
-						System.out.println("\nServer received invalid request packet");
+						System.out
+								.println("\nServer received invalid request packet");
 						TftpErrorPacket errorPacket = TftpPacket
 								.createErrorPacket(ErrorType.ILLEGAL_OPERATION,
 										e.getMessage());
@@ -221,7 +224,7 @@ public class TftpServer {
 			incrementThreadCount();
 
 			if (isReadRequest) {
-				this.runReadRequest();
+				this.sendFileToClient();
 			} else {
 				this.runWriteRequest();
 			}
@@ -229,127 +232,46 @@ public class TftpServer {
 			decrementThreadCount();
 		}
 
-		public void runReadRequest() {
-			try {
-				int blockNumber = 1;
-				boolean isLastDataPacket = false;
-				InetAddress toAddress = this.toAddress;
-				TftpPacket pk;
-				int maxDataSize = TftpDataPacket.getMaxFileDataLength();
+		private void sendDataAndWaitForAck(int blockNumber, byte[] fileData,
+				int fileDataLength) {
+			TftpDataPacket dataPk = TftpPacket.createDataPacket(blockNumber,
+					fileData, fileDataLength);
+			sendWaitResend(dataPk, TftpPacket.Type.ACK, blockNumber);
+		}
 
-				FileInputStream fs = new FileInputStream(filePath);
+		private void sendWaitResend(TftpPacket pk, TftpPacket.Type waitForType,
+				int blockNumber) {
+			DatagramPacket dp = pk.generateDatagram(toAddress, toPort);
+			socket.send(dp);
 
-				while (!isLastDataPacket) {
-					// Read file in 512 byte chunks
-					byte[] data = new byte[maxDataSize];
-					int bytesRead = fs.read(data);
+			receiveDataOrAck();
+		}
 
-					if (bytesRead == -1) {
-						// Special case when file size is multiple of 512 bytes
-						bytesRead = 0;
-						data = new byte[0];
-					}
+		public void sendFileToClient() {
+			int blockNumber = 1;
+			boolean isLastDataPacket = false;
 
-					// Create the packet and get the flag to know if it is the
-					// last
-					TftpDataPacket dataPacket = TftpPacket.createDataPacket(
-							blockNumber, data, bytesRead);
-					isLastDataPacket = dataPacket.isLastDataPacket();
-					DatagramPacket dp = dataPacket.generateDatagram(toAddress,
-							toPort);
+			FileInputStream fs = new FileInputStream(filePath);
+			int bytesRead;
 
-					// Send data packet
-					System.out.printf("Sending block %d of %s%n", blockNumber,
-							filename);
-					socket.send(dp);
+			do {
+				// Read file in 512 byte chunks
+				byte[] data = new byte[TftpDataPacket.MAX_FILE_DATA_LENGTH];
+				bytesRead = fs.read(data);
 
-					// Wait until we receive ack packet or error
-					dp = TftpPacket.createDatagramForReceiving();
-					do {
-						socket.receive(dp);
-						pk = TftpPacket.createFromDatagram(dp);
-
-						// Check for error packet
-						if (dp.getPort() != toPort) {
-							// Check for correct TID (sender port)
-							TftpErrorPacket errorPacket = TftpPacket
-									.createErrorPacket(ErrorType.UNKOWN_TID,
-											"You used an unkown TID");
-							socket.send(errorPacket.generateDatagram(toAddress,
-									dp.getPort()));
-							continue;
-						} else if (pk instanceof TftpErrorPacket) {
-							TftpErrorPacket errorPk = (TftpErrorPacket) pk;
-							System.out
-									.printf("Received error of type '%s' with message '%s'%n",
-											errorPk.getErrorType().toString(),
-											errorPk.getErrorMessage());
-							if (errorPk.shouldAbortTransfer()) {
-								// Close file and abort transfer
-								fs.close();
-								System.out
-										.printf("Aborting transfer of '%s'%n",
-												filename);
-								return;
-							}
-						}
-					} while (!(pk instanceof TftpAckPacket)
-							|| ((TftpAckPacket) pk).getBlockNumber() != blockNumber);
-					System.out.printf("Received ack for block %d of %s%n",
-							blockNumber, filename);
-					blockNumber++;
+				// Special case when file size is multiple of 512 bytes
+				if (bytesRead == -1) {
+					bytesRead = 0;
+					data = new byte[0];
 				}
 
-				fs.close();
-			} catch (FileNotFoundException e) {
-				// Send file not found error packet
-				try {
-					socket.send(TftpPacket.createErrorPacket(
-							ErrorType.FILE_NOT_FOUND, "").generateDatagram(
-							toAddress, toPort));
-				} catch (IllegalArgumentException e1) {
-					e1.printStackTrace();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-				System.out.println("File not found: " + filename);
-				return;
-			} catch (IOException e) {
-				// TODO check when IOException actually occurs and if we can
-				// send when socket is closed
-				// Send error packet (access violation)
-				try {
-					socket.send(TftpPacket.createErrorPacket(
-							ErrorType.ACCESS_VIOLATION, "").generateDatagram(
-							toAddress, toPort));
-				} catch (IllegalArgumentException e1) {
-					e1.printStackTrace();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-				System.out.println("IOException with file: " + filename);
-				return;
-			} catch(IllegalArgumentException e){
-				// We got an invalid packet
-				// Open new socket and send error packet response
-				DatagramSocket errorSocket = null;
-				try {
-					errorSocket = new DatagramSocket();
-				} catch (SocketException e1) {
-					e1.printStackTrace();
-				}
-				System.out.println("\nServer received invalid packet");
-				TftpErrorPacket errorPacket = TftpPacket
-						.createErrorPacket(ErrorType.ILLEGAL_OPERATION,
-								e.getMessage());
-				DatagramPacket dp = errorPacket.generateDatagram(toAddress,
-						toPort);
-				try {
-					errorSocket.send(dp);
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			}
+				// Send data
+				sendDataAndWaitForAck(blockNumber, data, bytesRead);
+
+				blockNumber++;
+			} while (bytesRead > 0);
+
+			fs.close();
 		}
 
 		public void runWriteRequest() {
@@ -361,7 +283,6 @@ public class TftpServer {
 				InetAddress toAddress = this.toAddress;
 				TftpPacket pk;
 				TftpDataPacket dataPk;
-				int maxDataSize = TftpDataPacket.getMaxFileDataLength();
 
 				while (true) {
 					// Send ack packet
@@ -391,8 +312,9 @@ public class TftpServer {
 											"You're an idiot, and used an unkown TID");
 							socket.send(errorPacket.generateDatagram(toAddress,
 									dp.getPort()));
-							System.out.println("******Ignoring invalid TID********");
-							
+							System.out
+									.println("******Ignoring invalid TID********");
+
 							continue;
 						} else if (pk instanceof TftpErrorPacket) {
 							TftpErrorPacket errorPk = (TftpErrorPacket) pk;
@@ -423,7 +345,7 @@ public class TftpServer {
 					dataPk = (TftpDataPacket) pk;
 					fs.write(dataPk.getFileData());
 
-					if (dataPk.getFileData().length != maxDataSize) {
+					if (dataPk.getFileData().length != TftpDataPacket.MAX_FILE_DATA_LENGTH) {
 						isLastDataPacket = true;
 					}
 				}
@@ -445,7 +367,7 @@ public class TftpServer {
 				System.out.println("IOException with file: " + filename);
 				e.printStackTrace();
 				return;
-			}catch(IllegalArgumentException e){
+			} catch (IllegalArgumentException e) {
 				// We got an invalid packet
 				// Open new socket and send error packet response
 				DatagramSocket errorSocket = null;
@@ -455,9 +377,8 @@ public class TftpServer {
 					e1.printStackTrace();
 				}
 				System.out.println("\nServer received invalid packet");
-				TftpErrorPacket errorPacket = TftpPacket
-						.createErrorPacket(ErrorType.ILLEGAL_OPERATION,
-								e.getMessage());
+				TftpErrorPacket errorPacket = TftpPacket.createErrorPacket(
+						ErrorType.ILLEGAL_OPERATION, e.getMessage());
 				DatagramPacket dp = errorPacket.generateDatagram(toAddress,
 						toPort);
 				try {
@@ -467,5 +388,6 @@ public class TftpServer {
 				}
 			}
 		}
+
 	}
 }
