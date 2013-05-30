@@ -28,8 +28,8 @@
       <operations public="true" package="true" protected="true" private="true"/>    
     </display>  
   </class>  
-  <class id="4" language="java" name="sysc3303.project.packets.TftpAckPacket" project="Project" 
-    file="/Project/src/sysc3303/project/packets/TftpAckPacket.java" binary="false" corner="BOTTOM_RIGHT">    
+  <class id="4" language="java" name="sysc3303.project.common.TftpAckPacket" project="Project" 
+    file="/Project/src/sysc3303/project/common/TftpAckPacket.java" binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="434" y="657"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="true" signature="true" accessors="true" 
       visibility="true">      
@@ -37,8 +37,8 @@
       <operations public="true" package="true" protected="true" private="true"/>    
     </display>  
   </class>  
-  <class id="5" language="java" name="sysc3303.project.packets.TftpDataPacket" project="Project" 
-    file="/Project/src/sysc3303/project/packets/TftpDataPacket.java" binary="false" corner="BOTTOM_RIGHT">    
+  <class id="5" language="java" name="sysc3303.project.common.TftpDataPacket" project="Project" 
+    file="/Project/src/sysc3303/project/common/TftpDataPacket.java" binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="699" y="647"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="true" signature="true" accessors="true" 
       visibility="true">      
@@ -46,8 +46,8 @@
       <operations public="true" package="true" protected="true" private="true"/>    
     </display>  
   </class>  
-  <class id="6" language="java" name="sysc3303.project.packets.TftpErrorPacket" project="Project" 
-    file="/Project/src/sysc3303/project/packets/TftpErrorPacket.java" binary="false" corner="BOTTOM_RIGHT">    
+  <class id="6" language="java" name="sysc3303.project.common.TftpErrorPacket" project="Project" 
+    file="/Project/src/sysc3303/project/common/TftpErrorPacket.java" binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="974" y="646"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="true" signature="true" accessors="true" 
       visibility="true">      
@@ -55,8 +55,8 @@
       <operations public="true" package="true" protected="true" private="true"/>    
     </display>  
   </class>  
-  <class id="7" language="java" name="sysc3303.project.packets.TftpPacket" project="Project" 
-    file="/Project/src/sysc3303/project/packets/TftpPacket.java" binary="false" corner="BOTTOM_RIGHT">    
+  <class id="7" language="java" name="sysc3303.project.common.TftpPacket" project="Project" 
+    file="/Project/src/sysc3303/project/common/TftpPacket.java" binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="571" y="1038"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="true" signature="true" accessors="true" 
       visibility="true">      
@@ -64,8 +64,8 @@
       <operations public="true" package="true" protected="true" private="true"/>    
     </display>  
   </class>  
-  <class id="8" language="java" name="sysc3303.project.packets.TftpRequestPacket" project="Project" 
-    file="/Project/src/sysc3303/project/packets/TftpRequestPacket.java" binary="false" corner="BOTTOM_RIGHT">    
+  <class id="8" language="java" name="sysc3303.project.common.TftpRequestPacket" project="Project" 
+    file="/Project/src/sysc3303/project/common/TftpRequestPacket.java" binary="false" corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="156" y="667"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="true" signature="true" accessors="true" 
       visibility="true">      
