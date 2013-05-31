@@ -1,5 +1,6 @@
 package sysc3303.project;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -13,7 +14,7 @@ import sysc3303.project.common.TftpRequestPacket;
 
 public class Client {
 	private InetAddress remoteAddress;
-	private int serverRequestPort = 6800;
+	private int serverRequestPort = 6900;
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
 
@@ -83,6 +84,8 @@ public class Client {
 
 	public void getFile(String filename) {
 		try {
+			String filePath = getPublicFolder() + filename;
+			FileOutputStream fs = new FileOutputStream(filePath);
 			TftpConnection con = new TftpConnection();
 			con.setRemoteAddress(remoteAddress);
 			con.setRequestPort(serverRequestPort);
@@ -96,9 +99,11 @@ public class Client {
 			int blockNumber = 1;
 			do {
 				pk = con.receiveData(blockNumber);
+				fs.write(pk.getFileData());
 				con.sendAck(blockNumber);
 				blockNumber++;
 			} while (!pk.isLastDataPacket());
+			fs.close();
 		} catch (TftpAbortException e) {
 			System.out.println("Failed to get " + filename + ": "
 					+ e.getMessage());
@@ -113,6 +118,8 @@ public class Client {
 			TftpConnection con = new TftpConnection();
 			con.setRemoteAddress(remoteAddress);
 			con.setRequestPort(serverRequestPort);
+
+			// TODO open file input buffer
 
 			TftpRequestPacket reqPk = TftpPacket.createWriteRequest(filename,
 					TftpRequestPacket.Mode.OCTET);
