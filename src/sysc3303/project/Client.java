@@ -2,12 +2,10 @@ package sysc3303.project;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
 import sysc3303.project.common.TftpAbortException;
-import sysc3303.project.common.TftpAckPacket;
 import sysc3303.project.common.TftpConnection;
 import sysc3303.project.common.TftpDataPacket;
 import sysc3303.project.common.TftpPacket;
@@ -23,8 +21,7 @@ public class Client {
 		try {
 			remoteAddress = InetAddress.getLocalHost();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Failed to get server address");
 		}
 	}
 
@@ -44,41 +41,36 @@ public class Client {
 
 			if (command[0].equals("help")) {
 				System.out.println("Available commands:");
-				System.out.println("    help: prints this help menu");
-				System.out.println("    stop: stop the client");
-				System.out
-						.println("    pwd: prints out the directory for file transfers");
+				printCommandOptions();
 			} else if (command[0].equals("stop")) {
 				System.out.println("Stopping client");
 				c.stop();
 				return;
 			} else if (command[0].equals("pwd")) {
 				System.out.println("Current directory: " + c.getPublicFolder());
-			} else if (command[0].equals("write") && command.length > 1
-					&& command[1].length() > 0) {
-				try {
-					c.sendFile(command[1]);
-				} catch (TftpAbortException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			} else if (command[0].equals("read") && command.length > 1
-					&& command[1].length() > 0) {
-				try {
-					c.getFile(command[1]);
-				} catch (TftpAbortException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+			} else if ((command[0].equals("read") || command[0].equals("get"))
+					&& command.length > 1 && command[1].length() > 0) {
+				c.getFile(command[1]);
+			} else if ((command[0].equals("write") || command[0].equals("send"))
+					&& command.length > 1 && command[1].length() > 0) {
+				c.sendFile(command[1]);
 			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
-				System.out.println("    help: prints this help menu");
-				System.out.println("    stop: stop the client");
-				System.out
-						.println("    pwd: prints out the directory for file transfers");
+				printCommandOptions();
 			}
 		}
+	}
+
+	static private void printCommandOptions() {
+		System.out.println("    help: prints this help menu");
+		System.out.println("    stop: stop the client");
+		System.out.println("    read filename: read file from server");
+		System.out.println("    get filename: alias for read filename");
+		System.out.println("    write filename: write file to server");
+		System.out.println("    send filename: alias for write filename");
+		System.out
+				.println("    pwd: prints out the directory for file transfers");
 	}
 
 	public String getPublicFolder() {
@@ -89,7 +81,7 @@ public class Client {
 		System.out.println("Client is shutting down... goodbye!");
 	}
 
-	public void getFile(String filename) throws TftpAbortException {
+	public void getFile(String filename) {
 		try {
 			TftpConnection con = new TftpConnection();
 			con.setRemoteAddress(remoteAddress);
@@ -107,12 +99,16 @@ public class Client {
 				con.sendAck(blockNumber);
 				blockNumber++;
 			} while (!pk.isLastDataPacket());
+		} catch (TftpAbortException e) {
+			System.out.println("Failed to get " + filename + ": "
+					+ e.getMessage());
 		} catch (IOException e) {
-			throw new TftpAbortException("IOException: " + e.getMessage());
+			System.out.println("IOException: failed to get " + filename + ": "
+					+ e.getMessage());
 		}
 	}
 
-	public void sendFile(String filename) throws TftpAbortException {
+	public void sendFile(String filename) {
 		try {
 			TftpConnection con = new TftpConnection();
 			con.setRemoteAddress(remoteAddress);
@@ -130,9 +126,12 @@ public class Client {
 				blockNumber++;
 				con.sendData(blockNumber, data, data.length);
 			} while (data.length == TftpDataPacket.MAX_FILE_DATA_LENGTH);
+		} catch (TftpAbortException e) {
+			System.out.println("Failed to send " + filename + ": "
+					+ e.getMessage());
 		} catch (IOException e) {
-			throw new TftpAbortException("IOException: " + e.getMessage());
+			System.out.println("IOException: failed to send " + filename + ": "
+					+ e.getMessage());
 		}
-
 	}
 }

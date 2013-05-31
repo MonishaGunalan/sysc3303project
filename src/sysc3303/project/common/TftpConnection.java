@@ -14,8 +14,8 @@ public class TftpConnection {
 	private int remoteTid = -1;
 	private DatagramPacket inDatagram = TftpPacket.createDatagramForReceiving();
 	private DatagramPacket resendDatagram;
-	private int maxResendAttempts = 5;
-	private int timeoutTime = 10000;
+	private int maxResendAttempts = 4;
+	private int timeoutTime = 2000;
 
 	public TftpConnection() throws SocketException {
 		this(new DatagramSocket());
@@ -40,9 +40,9 @@ public class TftpConnection {
 
 	public void sendRequest(TftpRequestPacket packet) throws IOException {
 		resendDatagram = packet.generateDatagram(remoteAddress, requestPort);
-		socket.send(resendDatagram);
+		socket.send(packet.generateDatagram(remoteAddress, requestPort));
 	}
-	
+
 	public void setRequestPort(int requestPort) {
 		this.requestPort = requestPort;
 	}
@@ -64,14 +64,26 @@ public class TftpConnection {
 
 	public void sendAck(int blockNumber) throws IOException {
 		send(TftpPacket.createAckPacket(blockNumber), true);
+		Log.d("sent: ack #" + blockNumber);
 	}
 
 	private void echoAck(int blockNumber) throws IOException {
 		send(TftpPacket.createAckPacket(blockNumber));
+		Log.d("sent: ack #" + blockNumber + " in response to duplicate data");
 	}
 
-	private void resendLastPacket() throws IOException {
-		socket.send(resendDatagram);
+	private void resendLastPacket() throws TftpAbortException {
+		if (resendDatagram == null) {
+			throw new TftpAbortException("Cannot resend last packet");
+		}
+
+		try {
+			socket.send(resendDatagram);
+			Log.d("resent last non-error packet");
+		} catch (IOException e) {
+			throw new TftpAbortException(e.getMessage());
+		}
+
 	}
 
 	private TftpPacket receive() throws IOException, TftpAbortException {
@@ -99,10 +111,11 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.ILLEGAL_OPERATION, message);
 			send(pk);
+			Log.d("sent: illegal operation error");
+			throw new TftpAbortException(message);
 		} catch (IOException e) {
 			throw new TftpAbortException(message);
 		}
-
 	}
 
 	private void sendUnkownTidError(InetAddress address, int port)
@@ -110,6 +123,7 @@ public class TftpConnection {
 		TftpErrorPacket pk = TftpPacket.createErrorPacket(
 				TftpErrorPacket.ErrorType.UNKOWN_TID, "Stop hacking foo!");
 		socket.send(pk.generateDatagram(address, port));
+		Log.d("sent: unknown tid error");
 	}
 
 	public TftpDataPacket receiveData(int blockNumber) throws IOException,
@@ -120,7 +134,10 @@ public class TftpConnection {
 		// Auto-set remoteTid, for convenience
 		if (remoteTid <= 0 && blockNumber == 1) {
 			remoteTid = inDatagram.getPort();
+			Log.d("setting remote tid: " + remoteTid);
 		}
+
+		Log.d("received: data #" + blockNumber);
 
 		return pk;
 	}
@@ -133,7 +150,10 @@ public class TftpConnection {
 		// Auto-set remoteTid, for convenience
 		if (remoteTid <= 0 && blockNumber == 0) {
 			remoteTid = inDatagram.getPort();
+			Log.d("setting remote tid: " + remoteTid);
 		}
+
+		Log.d("received: ack #" + blockNumber);
 
 		return pk;
 	}
@@ -186,5 +206,6 @@ public class TftpConnection {
 		TftpDataPacket pk = TftpPacket.createDataPacket(blockNumber, fileData,
 				fileDataLength);
 		send(pk, true);
+		Log.d("sent: data #" + blockNumber);
 	}
 }
