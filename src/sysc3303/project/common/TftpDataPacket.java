@@ -17,7 +17,7 @@ public class TftpDataPacket extends TftpPacket {
 	public static final int MAX_FILE_DATA_LENGTH = 512;
 
 	private static final int MIN_BLOCK_NUMBER = 1; // minimum block number
-	private static final int MAX_BLOCK_NUMBER = 0XFFFF; // maximum block number
+	private static final int MAX_BLOCK_NUMBER = 0xFFFF; // maximum block number
 
 	// length needed for header (also is minimum length of data packet)
 	private static final int PACKET_HEADER_LENGTH = 4;

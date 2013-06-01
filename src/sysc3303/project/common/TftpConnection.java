@@ -28,6 +28,7 @@ public class TftpConnection {
 	public TftpConnection(DatagramSocket socket) throws SocketException {
 		this.socket = socket;
 		socket.setSoTimeout(timeoutTime);
+		Log.d("connected on port " + socket.getLocalPort());
 	}
 
 	public void setRemoteAddress(InetAddress remoteAddress) {
@@ -36,6 +37,7 @@ public class TftpConnection {
 
 	public void setRemoteTid(int remoteTid) {
 		this.remoteTid = remoteTid;
+		Log.d("setting remote tid to: " + remoteTid);
 	}
 
 	public void sendRequest(TftpRequestPacket packet) throws IOException {
@@ -90,8 +92,9 @@ public class TftpConnection {
 		while (true) {
 			socket.receive(inDatagram);
 
-			if ((remoteTid > 0 && inDatagram.getPort() != remoteTid)
-					|| remoteAddress != inDatagram.getAddress()) {
+			if (remoteTid > 0
+					&& (inDatagram.getPort() != remoteTid || !(inDatagram
+							.getAddress()).equals(remoteAddress))) {
 				sendUnkownTidError(inDatagram.getAddress(),
 						inDatagram.getPort());
 				continue;
@@ -123,7 +126,7 @@ public class TftpConnection {
 		TftpErrorPacket pk = TftpPacket.createErrorPacket(
 				TftpErrorPacket.ErrorType.UNKOWN_TID, "Stop hacking foo!");
 		socket.send(pk.generateDatagram(address, port));
-		Log.d("sent: unknown tid error");
+		Log.d("sent: unknown tid error to " + addressToString(address, port));
 	}
 
 	public TftpDataPacket receiveData(int blockNumber) throws IOException,
@@ -133,13 +136,16 @@ public class TftpConnection {
 
 		// Auto-set remoteTid, for convenience
 		if (remoteTid <= 0 && blockNumber == 1) {
-			remoteTid = inDatagram.getPort();
-			Log.d("setting remote tid: " + remoteTid);
+			setRemoteTid(inDatagram.getPort());
 		}
 
 		Log.d("received: data #" + blockNumber);
 
 		return pk;
+	}
+
+	private String addressToString(InetAddress addr, int port) {
+		return addr.toString() + ":" + port;
 	}
 
 	public TftpAckPacket receiveAck(int blockNumber) throws IOException,
@@ -149,8 +155,7 @@ public class TftpConnection {
 
 		// Auto-set remoteTid, for convenience
 		if (remoteTid <= 0 && blockNumber == 0) {
-			remoteTid = inDatagram.getPort();
-			Log.d("setting remote tid: " + remoteTid);
+			setRemoteTid(inDatagram.getPort());
 		}
 
 		Log.d("received: ack #" + blockNumber);
@@ -185,6 +190,10 @@ public class TftpConnection {
 					TftpErrorPacket errorPk = (TftpErrorPacket) pk;
 					if (errorPk.shouldAbortTransfer()) {
 						throw new TftpAbortException(errorPk.getErrorMessage());
+					} else {
+						Log.d("received error of type "
+								+ errorPk.getType().toString()
+								+ " with message: " + errorPk.getErrorMessage());
 					}
 				} else if (pk instanceof TftpRequestPacket) {
 					throw new TftpAbortException(
