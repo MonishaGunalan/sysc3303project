@@ -1,5 +1,6 @@
 package sysc3303.project;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -84,8 +85,8 @@ public class TftpClient {
 	}
 
 	public void getFile(String filename) {
+		String filePath = getPublicFolder() + filename;
 		try {
-			String filePath = getPublicFolder() + filename;
 			FileOutputStream fs = new FileOutputStream(filePath);
 			TftpConnection con = new TftpConnection();
 			con.setRemoteAddress(remoteAddress);
@@ -106,9 +107,11 @@ public class TftpClient {
 			} while (!pk.isLastDataPacket());
 			fs.close();
 		} catch (TftpAbortException e) {
+			new File(filePath).delete();
 			System.out.println("Failed to get " + filename + ": "
 					+ e.getMessage());
 		} catch (IOException e) {
+			new File(filePath).delete();
 			System.out.println("IOException: failed to get " + filename + ": "
 					+ e.getMessage());
 		}
@@ -147,7 +150,7 @@ public class TftpClient {
 
 			// Wait for final ack
 			con.receiveAck(blockNumber);
-			
+
 			fs.close();
 		} catch (TftpAbortException e) {
 			System.out.println("Failed to send " + filename + ": "

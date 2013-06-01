@@ -120,9 +120,11 @@ class TftpServerFileTransfer extends Thread {
 
 			fs.close();
 		} catch (FileNotFoundException e) {
+			new File(filePath).delete();
 			System.out.println("Cannot write to: " + filename);
 			return;
 		} catch (IOException e) {
+			new File(filePath).delete();
 			System.out.println("IOException with file: " + filename);
 			e.printStackTrace();
 			return;
