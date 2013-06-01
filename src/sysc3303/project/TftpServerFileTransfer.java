@@ -114,7 +114,7 @@ class TftpServerFileTransfer extends Thread {
 			// Send final ack packet
 			try {
 				conn.sendAck(blockNumber);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				// no worries, this ack was just a courtesy
 			}
 
