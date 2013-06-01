@@ -15,7 +15,7 @@ import sysc3303.project.common.TftpRequestPacket;
 
 public class TftpClient {
 	private InetAddress remoteAddress;
-	private int serverRequestPort = 6900;
+	private int serverRequestPort = 6800;
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
 
