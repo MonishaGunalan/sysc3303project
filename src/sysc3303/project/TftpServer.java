@@ -12,7 +12,7 @@ import sysc3303.project.common.TftpRequestPacket;
  */
 public class TftpServer {
 	// Port on which to listen for requests (6900 for dev, 69 for submission)
-	private static final int LISTEN_PORT = 69;
+	private static final int LISTEN_PORT = 6900;
 
 	// Folder where files are read/written
 	private String publicFolder = System.getProperty("user.dir")

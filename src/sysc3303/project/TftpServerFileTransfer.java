@@ -80,7 +80,7 @@ class TftpServerFileTransfer extends Thread {
 				}
 
 				blockNumber++;
-			} while (bytesRead > 0);
+			} while (bytesRead == TftpDataPacket.MAX_FILE_DATA_LENGTH);
 			fs.close();
 		} catch (FileNotFoundException e1) {
 			Log.d("File not found: " + filename);

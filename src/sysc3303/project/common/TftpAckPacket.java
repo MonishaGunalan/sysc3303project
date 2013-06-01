@@ -9,7 +9,7 @@ package sysc3303.project.common;
 public class TftpAckPacket extends TftpPacket {
 	private static final int OP_CODE = 3; // The TFTP opcode
 	private static final int MIN_BLOCK_NUMBER = 0; // minimum block number
-	private static final int MAX_BLOCK_NUMBER = 0XFFFF; // maximum block number
+	private static final int MAX_BLOCK_NUMBER = 0xFFFF; // maximum block number
 	private static final int PACKET_LENGTH = 4; // exact length packet should be
 	private int blockNumber = 0; // The ack's block number
 
