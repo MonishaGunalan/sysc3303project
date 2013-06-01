@@ -64,9 +64,13 @@ public class TftpConnection {
 		socket.send(dp);
 	}
 
-	public void sendAck(int blockNumber) throws IOException {
-		send(TftpPacket.createAckPacket(blockNumber), true);
-		Log.d("sent: ack #" + blockNumber);
+	public void sendAck(int blockNumber) throws TftpAbortException {
+		try {
+			send(TftpPacket.createAckPacket(blockNumber), true);
+			Log.d("sent: ack #" + blockNumber);
+		} catch (Exception e) {
+			throw new TftpAbortException(e.getMessage());
+		}
 	}
 
 	private void echoAck(int blockNumber) throws IOException {
@@ -121,16 +125,20 @@ public class TftpConnection {
 		}
 	}
 
-	private void sendUnkownTidError(InetAddress address, int port)
-			throws IOException {
-		TftpErrorPacket pk = TftpPacket.createErrorPacket(
-				TftpErrorPacket.ErrorType.UNKOWN_TID, "Stop hacking foo!");
-		socket.send(pk.generateDatagram(address, port));
-		Log.d("sent: unknown tid error to " + addressToString(address, port));
+	private void sendUnkownTidError(InetAddress address, int port) {
+		try {
+			TftpErrorPacket pk = TftpPacket.createErrorPacket(
+					TftpErrorPacket.ErrorType.UNKOWN_TID, "Stop hacking foo!");
+			socket.send(pk.generateDatagram(address, port));
+			Log.d("sent: unknown tid error to "
+					+ addressToString(address, port));
+		} catch (Exception e) {
+			Log.d("failed to send unkown tid error... oh well, life goes on");
+		}
 	}
 
-	public TftpDataPacket receiveData(int blockNumber) throws IOException,
-			TftpAbortException {
+	public TftpDataPacket receiveData(int blockNumber)
+			throws TftpAbortException {
 		TftpDataPacket pk = (TftpDataPacket) receiveExpected(
 				TftpPacket.Type.DATA, blockNumber);
 
@@ -148,8 +156,7 @@ public class TftpConnection {
 		return addr.toString() + ":" + port;
 	}
 
-	public TftpAckPacket receiveAck(int blockNumber) throws IOException,
-			TftpAbortException {
+	public TftpAckPacket receiveAck(int blockNumber) throws TftpAbortException {
 		TftpAckPacket pk = (TftpAckPacket) receiveExpected(TftpPacket.Type.ACK,
 				blockNumber);
 
@@ -164,57 +171,68 @@ public class TftpConnection {
 	}
 
 	private TftpPacket receiveExpected(TftpPacket.Type type, int blockNumber)
-			throws IOException, TftpAbortException {
+			throws TftpAbortException {
 
 		int timeouts = 0;
-		while (true) {
-			try {
-				TftpPacket pk = receive();
+		try {
+			while (true) {
+				try {
+					TftpPacket pk = receive();
 
-				if (pk.getType() == type) {
-					if (pk.getType() == TftpPacket.Type.DATA) {
-						TftpDataPacket dataPk = (TftpDataPacket) pk;
-						if (dataPk.getBlockNumber() == blockNumber) {
-							return dataPk;
-						} else if (dataPk.getBlockNumber() < blockNumber) {
-							// We received an old data packet, so send
-							// corresponding ack
-							echoAck(dataPk.getBlockNumber());
+					if (pk.getType() == type) {
+						if (pk.getType() == TftpPacket.Type.DATA) {
+							TftpDataPacket dataPk = (TftpDataPacket) pk;
+							if (dataPk.getBlockNumber() == blockNumber) {
+								return dataPk;
+							} else if (dataPk.getBlockNumber() < blockNumber) {
+								// We received an old data packet, so send
+								// corresponding ack
+								echoAck(dataPk.getBlockNumber());
+							}
+						} else if (pk.getType() == TftpPacket.Type.ACK) {
+							if (((TftpAckPacket) pk).getBlockNumber() == blockNumber) {
+								return pk;
+							}
 						}
-					} else if (pk.getType() == TftpPacket.Type.ACK) {
-						if (((TftpAckPacket) pk).getBlockNumber() == blockNumber) {
-							return pk;
+					} else if (pk instanceof TftpErrorPacket) {
+						TftpErrorPacket errorPk = (TftpErrorPacket) pk;
+						if (errorPk.shouldAbortTransfer()) {
+							throw new TftpAbortException(
+									errorPk.getErrorMessage());
+						} else {
+							Log.d("received error of type "
+									+ errorPk.getType().toString()
+									+ " with message: "
+									+ errorPk.getErrorMessage());
 						}
+					} else if (pk instanceof TftpRequestPacket) {
+						throw new TftpAbortException(
+								"Received request packet within data transfer connection");
 					}
-				} else if (pk instanceof TftpErrorPacket) {
-					TftpErrorPacket errorPk = (TftpErrorPacket) pk;
-					if (errorPk.shouldAbortTransfer()) {
-						throw new TftpAbortException(errorPk.getErrorMessage());
-					} else {
-						Log.d("received error of type "
-								+ errorPk.getType().toString()
-								+ " with message: " + errorPk.getErrorMessage());
+				} catch (SocketTimeoutException e) {
+					if (timeouts >= maxResendAttempts) {
+						throw new TftpAbortException("Connection timed out");
 					}
-				} else if (pk instanceof TftpRequestPacket) {
-					throw new TftpAbortException(
-							"Received request packet within data transfer connection");
-				}
-			} catch (SocketTimeoutException e) {
-				if (timeouts >= maxResendAttempts) {
-					throw new TftpAbortException("Connection timed out");
-				}
 
-				timeouts++;
-				resendLastPacket();
+					timeouts++;
+					resendLastPacket();
+				}
 			}
+		} catch (Exception e) {
+			throw new TftpAbortException(e.getMessage());
 		}
 	}
 
 	public void sendData(int blockNumber, byte[] fileData, int fileDataLength)
-			throws IOException {
-		TftpDataPacket pk = TftpPacket.createDataPacket(blockNumber, fileData,
-				fileDataLength);
-		send(pk, true);
-		Log.d("sent: data #" + blockNumber + ((pk.isLastDataPacket()) ? " (last)" : ""));
+			throws TftpAbortException {
+		try {
+			TftpDataPacket pk = TftpPacket.createDataPacket(blockNumber,
+					fileData, fileDataLength);
+			send(pk, true);
+			Log.d("sent: data #" + blockNumber
+					+ ((pk.isLastDataPacket()) ? " (last)" : ""));
+		} catch (Exception e) {
+			throw new TftpAbortException(e.getMessage());
+		}
 	}
 }
