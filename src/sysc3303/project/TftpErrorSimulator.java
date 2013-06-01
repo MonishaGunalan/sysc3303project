@@ -464,21 +464,27 @@ public class TftpErrorSimulator {
 							socket.receive(dp);
 							serverPort = dp.getPort();
 
-							/************ check This **********/
 						} else if (packetType == PacketType.ACK
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
 										.getBlockNumber() == 3) {
-							// Lose the packet, i.e wait for server to send the
-							// ack again
+							// Lose the packet, i.e wait for client to send the
+							// data again
 							System.out
-									.println("Receiving ack packet from server");
+									.println("Receiving the same data packet from client");
 							dp = TftpPacket.createDatagramForReceiving();
 							socket.receive(dp);
-							serverPort = dp.getPort();
+							// Send that back to server
+							dp = new DatagramPacket(dp.getData(),
+									dp.getLength(), serverAddress, serverPort);
+							socket.send(dp);
+							// Now get the ack from server
+							dp = TftpPacket.createDatagramForReceiving();
+							socket.receive(dp);
 						}
 						socket.send(dp);
+
 					} else if (errorCommand == ErrorCommands.ERROR_DELAY_PACKET) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
@@ -516,7 +522,7 @@ public class TftpErrorSimulator {
 
 							// send the delayed packet
 							System.out
-									.println("Forwarding delayed data packet to cleint");
+									.println("Forwarding delayed data packet to client");
 							dp = new DatagramPacket(dp2.getData(),
 									dp2.getLength(), clientAddress, clientPort);
 
@@ -527,6 +533,18 @@ public class TftpErrorSimulator {
 										.getBlockNumber() == 3) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
+
+							System.out
+									.println("Receiving the same data packet from client");
+							dp = TftpPacket.createDatagramForReceiving();
+							socket.receive(dp);
+
+							// Send that back to server
+							dp = new DatagramPacket(dp.getData(),
+									dp.getLength(), serverAddress, serverPort);
+							socket.send(dp);
+
+							// Now get the ack from server
 							System.out
 									.println("Waiting to get  ack packet from server");
 							dp = TftpPacket.createDatagramForReceiving();
@@ -650,16 +668,19 @@ public class TftpErrorSimulator {
 							&& ((TftpDataPacket) TftpPacket
 									.createFromDatagram(dp)).getBlockNumber() == 3) {
 						socket.send(appendData(dp));
+
 					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_PACKET
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
 									.createFromDatagram(dp)).getBlockNumber() == 2) {
 						socket.send(shrinkData(dp));
+
 					} else if (errorCommand == ErrorCommands.ERROR_APPEND_ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
 									.createFromDatagram(dp)).getBlockNumber() == 2) {
 						socket.send(appendAckPacket(dp));
+
 					} else if (errorCommand == ErrorCommands.ERROR_INVALID_TID) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
@@ -669,6 +690,7 @@ public class TftpErrorSimulator {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
+
 						} else if (packetType == PacketType.ACK
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
@@ -686,12 +708,14 @@ public class TftpErrorSimulator {
 							&& ((TftpDataPacket) TftpPacket
 									.createFromDatagram(dp)).getBlockNumber() == 3) {
 						socket.send(changeOpcode(dp));
+
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_OPCODE
 							&& packetType == PacketType.ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpDataPacket) TftpPacket
 									.createFromDatagram(dp)).getBlockNumber() == 3) {
 						socket.send(changeOpcode(dp));
+
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
@@ -710,13 +734,22 @@ public class TftpErrorSimulator {
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
 										.getBlockNumber() == 3) {
-							// Lose the packet, i.e wait for server to send the
-							// data back
-							System.out.println("Receiving ack from client");
+							// Lose the packet, i.e wait for client to send the
+							// data again
+							System.out
+									.println("Receiving the same data packet from server");
+							dp = TftpPacket.createDatagramForReceiving();
+							socket.receive(dp);
+							// Send that back to client
+							dp = new DatagramPacket(dp.getData(),
+									dp.getLength(), clientAddress, clientPort);
+							socket.send(dp);
+							// Now get the ack from client
 							dp = TftpPacket.createDatagramForReceiving();
 							socket.receive(dp);
 						}
 						socket.send(dp);
+
 					} else if (errorCommand == ErrorCommands.ERROR_DELAY_PACKET) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
@@ -756,6 +789,7 @@ public class TftpErrorSimulator {
 							System.out.println("Forwarding packet to server");
 							dp = new DatagramPacket(dp2.getData(),
 									dp2.getLength(), serverAddress, serverPort);
+
 							/********* CHECK THIS *********/
 						} else if (packetType == PacketType.ACK
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
@@ -764,10 +798,23 @@ public class TftpErrorSimulator {
 										.getBlockNumber() == 3) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
+
 							System.out
-									.println("Waiting to get ack packet from client");
+									.println("Receiving the same data packet from Server");
 							dp = TftpPacket.createDatagramForReceiving();
 							socket.receive(dp);
+
+							// Send that back to Client
+							dp = new DatagramPacket(dp.getData(),
+									dp.getLength(), clientAddress, clientPort);
+							socket.send(dp);
+
+							// Now get the ack from Client
+							System.out
+									.println("Waiting to get  ack packet from client");
+							dp = TftpPacket.createDatagramForReceiving();
+							socket.receive(dp);
+
 							DatagramPacket dp2 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 
