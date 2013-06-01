@@ -790,7 +790,7 @@ public class TftpErrorSimulator {
 							dp = new DatagramPacket(dp2.getData(),
 									dp2.getLength(), serverAddress, serverPort);
 
-							/********* CHECK THIS *********/
+							
 						} else if (packetType == PacketType.ACK
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket

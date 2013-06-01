@@ -38,7 +38,14 @@ public class TftpRequestPacket extends TftpPacket {
 		// Make sure our parameters are not null and filename isn't blank
 		if (filename == null || filename.length() == 0|| action == null
 				|| mode == null) {
-			throw new IllegalArgumentException("Missing data in the request packet");
+			String message = "Missing data in the request packet";
+			if(filename == null || filename.length() == 0)
+				message = "Missing file name";
+			else if(action == null)
+				message = "Not a read or write request";
+			else if(mode == null)
+				message = "Invalid transfer mode";
+			throw new IllegalArgumentException(message);
 		}
 		this.filename = filename;
 		this.action = action;
