@@ -118,7 +118,7 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.ILLEGAL_OPERATION, message);
 			send(pk);
-			Log.d("sent: illegal operation error");
+			Log.d("sent: illegal operation error with message: " + message);
 			throw new TftpAbortException(message);
 		} catch (IOException e) {
 			throw new TftpAbortException(message);
