@@ -123,7 +123,8 @@ public class TftpDataPacket extends TftpPacket {
 		}
 
 		// Extract the file data and block number
-		int blockNumber = (packetData[2] << 8) + packetData[3];
+		int blockNumber = ((packetData[2] << 8) & 0xFF00)
+				| (packetData[3] & 0xFF);
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		stream.write(packetData, PACKET_HEADER_LENGTH, packetLength
 				- PACKET_HEADER_LENGTH);

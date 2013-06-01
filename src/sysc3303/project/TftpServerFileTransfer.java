@@ -58,9 +58,10 @@ class TftpServerFileTransfer extends Thread {
 			fs = new FileInputStream(filePath);
 			int bytesRead;
 
+			// Read file in 512 byte chunks
+			byte[] data = new byte[TftpDataPacket.MAX_FILE_DATA_LENGTH];
+
 			do {
-				// Read file in 512 byte chunks
-				byte[] data = new byte[TftpDataPacket.MAX_FILE_DATA_LENGTH];
 				bytesRead = fs.read(data);
 
 				// Special case when file size is multiple of 512 bytes

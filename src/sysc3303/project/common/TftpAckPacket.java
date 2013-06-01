@@ -49,7 +49,8 @@ public class TftpAckPacket extends TftpPacket {
 			throw new IllegalArgumentException("Incorrect opcode");
 		}
 
-		int blockNumber = (packetData[2] << 8) + packetData[3];
+		int blockNumber = ((packetData[2] << 8) & 0xFF00)
+				| (packetData[3] & 0xFF);
 		return new TftpAckPacket(blockNumber);
 	}
 

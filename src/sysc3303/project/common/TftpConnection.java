@@ -215,6 +215,6 @@ public class TftpConnection {
 		TftpDataPacket pk = TftpPacket.createDataPacket(blockNumber, fileData,
 				fileDataLength);
 		send(pk, true);
-		Log.d("sent: data #" + blockNumber);
+		Log.d("sent: data #" + blockNumber + ((pk.isLastDataPacket()) ? " (last)" : ""));
 	}
 }
