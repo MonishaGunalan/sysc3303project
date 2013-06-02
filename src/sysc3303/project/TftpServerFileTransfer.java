@@ -75,7 +75,7 @@ class TftpServerFileTransfer extends Thread {
 					conn.sendData(blockNumber, data, bytesRead);
 					conn.receiveAck(blockNumber);
 				} catch (TftpAbortException e) {
-					Log.d("Aborting transfer of " + filename);
+					Log.d("Aborting transfer of " + filename + ": " + e.getMessage());
 					fs.close();
 					return;
 				}
@@ -104,7 +104,7 @@ class TftpServerFileTransfer extends Thread {
 					dataPk = conn.receiveData(++blockNumber);
 					fs.write(dataPk.getFileData());
 				} catch (TftpAbortException e) {
-					Log.d("Aborting transfer of " + filename);
+					Log.d("Aborting transfer of " + filename + ": " + e.getMessage());
 					fs.close();
 					new File(filename).delete();
 					return;
@@ -114,7 +114,7 @@ class TftpServerFileTransfer extends Thread {
 			// Send final ack packet
 			try {
 				conn.sendAck(blockNumber);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				// no worries, this ack was just a courtesy
 			}
 
