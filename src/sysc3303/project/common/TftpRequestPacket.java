@@ -1,4 +1,4 @@
-package sysc3303.project.packets;
+package sysc3303.project.common;
 
 import java.io.ByteArrayOutputStream;
 
@@ -38,7 +38,14 @@ public class TftpRequestPacket extends TftpPacket {
 		// Make sure our parameters are not null and filename isn't blank
 		if (filename == null || filename.length() == 0|| action == null
 				|| mode == null) {
-			throw new IllegalArgumentException("Missing data in the request packet");
+			String message = "Missing data in the request packet";
+			if(filename == null || filename.length() == 0)
+				message = "Missing file name";
+			else if(action == null)
+				message = "Not a read or write request";
+			else if(mode == null)
+				message = "Invalid transfer mode";
+			throw new IllegalArgumentException(message);
 		}
 		this.filename = filename;
 		this.action = action;
@@ -138,7 +145,7 @@ public class TftpRequestPacket extends TftpPacket {
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @see sysc3303.project.packets.TftpPacket.Packet#generateData()
+	 * @see sysc3303.project.common.TftpPacket#generateData()
 	 */
 	@Override
 	public byte[] generateData() {
@@ -172,7 +179,7 @@ public class TftpRequestPacket extends TftpPacket {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @see sysc3303.project.packets.TftpPacket.Packet#toString()
+	 * @see sysc3303.project.common.TftpPacket.Packet#toString()
 	 */
 	@Override
 	public String toString() {

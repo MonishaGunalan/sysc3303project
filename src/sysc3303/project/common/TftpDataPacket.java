@@ -1,4 +1,4 @@
-package sysc3303.project.packets;
+package sysc3303.project.common;
 
 import java.io.ByteArrayOutputStream;
 
@@ -11,21 +11,22 @@ import java.io.ByteArrayOutputStream;
 public class TftpDataPacket extends TftpPacket {
 	// the TFTP op code for a data packet
 	private static final int OP_CODE = 4;
-	
-	// the maximum file data length that can be transmitted in a single TFTP data packet
-	private static final int MAX_FILE_DATA_LENGTH = 512; 
+
+	// the maximum file data length that can be transmitted in a single TFTP
+	// data packet
+	public static final int MAX_FILE_DATA_LENGTH = 512;
 
 	private static final int MIN_BLOCK_NUMBER = 1; // minimum block number
-	private static final int MAX_BLOCK_NUMBER = 0XFFFF; // maximum block number
+	private static final int MAX_BLOCK_NUMBER = 0xFFFF; // maximum block number
 
 	// length needed for header (also is minimum length of data packet)
-	private static final int PACKET_HEADER_LENGTH = 4; 
-	
+	private static final int PACKET_HEADER_LENGTH = 4;
+
 	// block number for the packet
 	private int blockNumber = 0;
 
 	// data byte array from the file being read/written
-	private byte[] fileData = null; 
+	private byte[] fileData = null;
 
 	/**
 	 * Constructor
@@ -42,7 +43,8 @@ public class TftpDataPacket extends TftpPacket {
 
 		// if fileData is null, we must have a fileDataLength of 0
 		if (fileData == null && fileDataLength != 0) {
-			throw new IllegalArgumentException("File Data is null");
+			throw new IllegalArgumentException(
+					"Data length must be 0 if data is null");
 		}
 
 		// fileDataLength can never exceed the array size of fileData, nor the
@@ -50,7 +52,7 @@ public class TftpDataPacket extends TftpPacket {
 		if (fileData != null
 				&& (fileDataLength > fileData.length
 						|| fileDataLength > MAX_FILE_DATA_LENGTH || fileDataLength < 0)) {
-			throw new IllegalArgumentException("Excess data");
+			throw new IllegalArgumentException("Invalid data length passed");
 		}
 
 		this.type = Type.DATA;
@@ -61,15 +63,6 @@ public class TftpDataPacket extends TftpPacket {
 			this.fileData = new byte[fileDataLength];
 			System.arraycopy(fileData, 0, this.fileData, 0, fileDataLength);
 		}
-	}
-	
-	/**
-	 * Get the max data length
-	 * 
-	 * @return  max data length
-	 */
-	public static int getMaxFileDataLength(){
-		return MAX_FILE_DATA_LENGTH;
 	}
 
 	/**
@@ -126,11 +119,12 @@ public class TftpDataPacket extends TftpPacket {
 
 		// Verify the op code
 		if (packetData[0] != 0 || packetData[1] != OP_CODE) {
-			throw new IllegalArgumentException("Invalid OP Code");
+			throw new IllegalArgumentException("Invalid opcode");
 		}
 
 		// Extract the file data and block number
-		int blockNumber = (packetData[2] << 8) + packetData[3];
+		int blockNumber = ((packetData[2] << 8) & 0xFF00)
+				| (packetData[3] & 0xFF);
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		stream.write(packetData, PACKET_HEADER_LENGTH, packetLength
 				- PACKET_HEADER_LENGTH);
@@ -142,7 +136,7 @@ public class TftpDataPacket extends TftpPacket {
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @see sysc3303.project.packets.TftpPacket#generateData()
+	 * @see sysc3303.project.common.TftpPacket#generateData()
 	 */
 	@Override
 	public byte[] generateData() {
@@ -160,7 +154,7 @@ public class TftpDataPacket extends TftpPacket {
 	 * only)
 	 * 
 	 * @return a string representation of the packet
-	 * @see sysc3303.project.packets.TftpPacket#toString()
+	 * @see sysc3303.project.common.TftpPacket#toString()
 	 */
 	@Override
 	public String toString() {

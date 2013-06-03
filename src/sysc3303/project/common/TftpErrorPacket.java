@@ -1,4 +1,4 @@
-package sysc3303.project.packets;
+package sysc3303.project.common;
 
 import java.io.ByteArrayOutputStream;
 
@@ -71,11 +71,10 @@ public class TftpErrorPacket extends TftpPacket {
 	 * Generate the packet data
 	 * 
 	 * @return the byte array of the packet
-	 * @throws IllegalArgumentException
-	 * @see sysc3303.project.packets.TftpPacket#generatePacketData()
+	 * @see sysc3303.project.common.TftpPacket#generatePacketData()
 	 */
 	@Override
-	public byte[] generateData() throws IllegalArgumentException {
+	public byte[] generateData() {
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 
 		// Set op code
