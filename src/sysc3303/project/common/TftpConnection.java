@@ -59,6 +59,8 @@ public class TftpConnection {
 
 		if (cacheForResend) {
 			resendDatagram = dp;
+		}else{
+			resendDatagram = null;
 		}
 
 		socket.send(dp);
@@ -80,7 +82,7 @@ public class TftpConnection {
 
 	private void resendLastPacket() throws TftpAbortException {
 		if (resendDatagram == null) {
-			throw new TftpAbortException("Cannot resend last packet");
+			return;//throw new TftpAbortException("Cannot resend last packet");
 		}
 
 		try {
