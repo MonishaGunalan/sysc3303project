@@ -139,6 +139,50 @@ public class TftpConnection {
 		}
 	}
 
+	public void sendFileNotFound(String message) {
+		try {
+			TftpErrorPacket pk = TftpPacket.createErrorPacket(
+					TftpErrorPacket.ErrorType.FILE_NOT_FOUND, message);
+			send(pk);
+			Log.d("sent: file not found");
+		} catch (IOException e) {
+			// Ignore
+		}
+	}
+
+	public void sendDiscFull(String message) {
+		try {
+			TftpErrorPacket pk = TftpPacket.createErrorPacket(
+					TftpErrorPacket.ErrorType.DISC_FULL_OR_ALLOCATION_EXCEEDED, message);
+			send(pk);
+			Log.d("sent: disc full or allocation exceeded");
+		} catch (IOException e) {
+			// Ignore
+		}
+	}
+
+	public void sendAccessViolation(String message) {
+		try {
+			TftpErrorPacket pk = TftpPacket.createErrorPacket(
+					TftpErrorPacket.ErrorType.ACCESS_VIOLATION, message);
+			send(pk);
+			Log.d("sent: access violation");
+		} catch (IOException e) {
+			// Ignore
+		}
+	}
+
+	public void sendFileAlreadyExists(String message) {
+		try {
+			TftpErrorPacket pk = TftpPacket.createErrorPacket(
+					TftpErrorPacket.ErrorType.FILE_ALREADY_EXISTS, message);
+			send(pk);
+			Log.d("sent: file already exists");
+		} catch (IOException e) {
+			// Ignore
+		}
+	}
+
 	public TftpDataPacket receiveData(int blockNumber)
 			throws TftpAbortException {
 		TftpDataPacket pk = (TftpDataPacket) receiveExpected(

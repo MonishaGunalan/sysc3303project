@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.SyncFailedException;
 import java.net.InetAddress;
 import java.net.SocketException;
 
@@ -51,11 +52,23 @@ class TftpServerFileTransfer extends Thread {
 	}
 
 	public void sendFileToClient() {
+
 		int blockNumber = 1;
 
 		FileInputStream fs;
 		try {
-			fs = new FileInputStream(filePath);
+			// Check that file exists
+			File file = new File(filePath);
+			if (!file.exists()) {
+				throw new FileNotFoundException();
+			}
+
+			if (!file.isAbsolute()) {
+				conn.sendAccessViolation("Trying to access file in private area");
+				return;
+			}
+
+			fs = new FileInputStream(file);
 			int bytesRead;
 
 			// Read file in 512 byte chunks
@@ -75,16 +88,17 @@ class TftpServerFileTransfer extends Thread {
 					conn.sendData(blockNumber, data, bytesRead);
 					conn.receiveAck(blockNumber);
 				} catch (TftpAbortException e) {
-					Log.d("Aborting transfer of " + filename + ": " + e.getMessage());
+					Log.d("Aborting transfer of " + filename + ": "
+							+ e.getMessage());
 					fs.close();
 					return;
 				}
-
 				blockNumber++;
 			} while (bytesRead == TftpDataPacket.MAX_FILE_DATA_LENGTH);
 			fs.close();
 		} catch (FileNotFoundException e1) {
 			Log.d("File not found: " + filename);
+			conn.sendFileNotFound("Could not find: " + filename);
 			return;
 		} catch (IOException e) {
 			Log.d("IOException: " + e.getMessage());
@@ -94,7 +108,19 @@ class TftpServerFileTransfer extends Thread {
 
 	public void receiveFileFromClient() {
 		try {
-			FileOutputStream fs = new FileOutputStream(filePath);
+			// Check that file does not exist already
+			File file = new File(filePath);
+			if (file.exists()) {
+				conn.sendFileAlreadyExists(filename + " already exists");
+				return;
+			}
+
+			if (!file.isAbsolute()) {
+				conn.sendAccessViolation("Trying to access file in private area");
+				return;
+			}
+
+			FileOutputStream fs = new FileOutputStream(file);
 			int blockNumber = 0;
 			TftpDataPacket dataPk;
 
@@ -103,10 +129,17 @@ class TftpServerFileTransfer extends Thread {
 					conn.sendAck(blockNumber);
 					dataPk = conn.receiveData(++blockNumber);
 					fs.write(dataPk.getFileData());
+					fs.getFD().sync();
 				} catch (TftpAbortException e) {
-					Log.d("Aborting transfer of " + filename + ": " + e.getMessage());
+					Log.d("Aborting transfer of " + filename + ": "
+							+ e.getMessage());
 					fs.close();
 					new File(filename).delete();
+					return;
+				} catch (SyncFailedException e) {
+					file.delete();
+					fs.close();
+					conn.sendDiscFull("Failed to sync with disc, likely is full");
 					return;
 				}
 			} while (!dataPk.isLastDataPacket());
@@ -120,7 +153,7 @@ class TftpServerFileTransfer extends Thread {
 
 			fs.close();
 		} catch (FileNotFoundException e) {
-			new File(filePath).delete();
+			conn.sendAccessViolation(filename + "cannot be received");
 			System.out.println("Cannot write to: " + filename);
 			return;
 		} catch (IOException e) {
