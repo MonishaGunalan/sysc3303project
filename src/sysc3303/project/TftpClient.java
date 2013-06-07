@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.SyncFailedException;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
@@ -19,6 +21,7 @@ public class TftpClient {
 	private int serverRequestPort = 6800;
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
+	private TftpConnection conn;
 
 	public TftpClient() {
 		try {
@@ -84,25 +87,57 @@ public class TftpClient {
 		System.out.println("Client is shutting down... goodbye!");
 	}
 
+	public void connect(InetAddress remoteAddress, int serverRequestPort)
+			throws SocketException {
+		try {
+			conn = new TftpConnection();
+			System.out.println("Connected to " + remoteAddress.toString() + ":"
+					+ serverRequestPort);
+		} catch (SocketException e) {
+			System.out.println("Failed to connect to "
+					+ remoteAddress.toString() + ":" + serverRequestPort);
+			throw e;
+		}
+	}
+
 	public void getFile(String filename) {
 		String filePath = getPublicFolder() + filename;
 		try {
+			// Check write permissions
+			File file = new File(filePath);
+			if (file.exists() && !file.canWrite()) {
+				System.out.println("Cannot overwrite file: " + filename);
+				return;
+			}
+
+			// Connect to the server
+			try {
+				connect(remoteAddress, serverRequestPort);
+			} catch (SocketException e) {
+				return;
+			}
+
 			FileOutputStream fs = new FileOutputStream(filePath);
-			TftpConnection con = new TftpConnection();
-			con.setRemoteAddress(remoteAddress);
-			con.setRequestPort(serverRequestPort);
 
 			TftpRequestPacket reqPk = TftpPacket.createReadRequest(filename,
 					TftpRequestPacket.Mode.OCTET);
-			con.sendRequest(reqPk);
+			conn.sendRequest(reqPk);
 
 			TftpDataPacket pk;
 
 			int blockNumber = 1;
 			do {
-				pk = con.receiveData(blockNumber);
-				fs.write(pk.getFileData());
-				con.sendAck(blockNumber);
+				pk = conn.receiveData(blockNumber);
+				try {
+					fs.write(pk.getFileData());
+					fs.getFD().sync();
+				} catch (SyncFailedException e) {
+					file.delete();
+					fs.close();
+					conn.sendDiscFull("Failed to sync with disc, likely is full");
+					return;
+				}
+				conn.sendAck(blockNumber);
 				blockNumber++;
 			} while (!pk.isLastDataPacket());
 			fs.close();
@@ -120,21 +155,41 @@ public class TftpClient {
 	public void sendFile(String filename) {
 		try {
 			String filePath = getPublicFolder() + filename;
-			TftpConnection con = new TftpConnection();
-			FileInputStream fs = new FileInputStream(filePath);
-			con.setRemoteAddress(remoteAddress);
-			con.setRequestPort(serverRequestPort);
 
+			// Check that file exists
+			File file = new File(filePath);
+			if (!file.exists()) {
+				System.out.println("Cannot find file: " + filename);
+				return;
+			}
+
+			// Check read permissions
+			if (!file.canRead()) {
+				System.out.println("Cannot read file: " + filename);
+				return;
+			}
+
+			// Connect to the server
+			try {
+				connect(remoteAddress, serverRequestPort);
+			} catch (SocketException e) {
+				return;
+			}
+
+			// Open input stream
+			FileInputStream fs = new FileInputStream(file);
+
+			// Send request
 			TftpRequestPacket reqPk = TftpPacket.createWriteRequest(filename,
 					TftpRequestPacket.Mode.OCTET);
-			con.sendRequest(reqPk);
+			conn.sendRequest(reqPk);
 
 			int blockNumber = 0;
 			byte[] data = new byte[512];
 			int bytesRead = 0;
 
 			do {
-				con.receiveAck(blockNumber);
+				conn.receiveAck(blockNumber);
 				blockNumber++;
 
 				bytesRead = fs.read(data);
@@ -145,11 +200,11 @@ public class TftpClient {
 					data = new byte[0];
 				}
 
-				con.sendData(blockNumber, data, bytesRead);
+				conn.sendData(blockNumber, data, bytesRead);
 			} while (bytesRead == TftpDataPacket.MAX_FILE_DATA_LENGTH);
 
 			// Wait for final ack
-			con.receiveAck(blockNumber);
+			conn.receiveAck(blockNumber);
 
 			fs.close();
 		} catch (TftpAbortException e) {
