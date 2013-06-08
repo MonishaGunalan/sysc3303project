@@ -1,4 +1,3 @@
-
 IDE Used: Eclipse
 ========
 
@@ -8,28 +7,37 @@ Please import the following Java source files to a new project in Eclipse
 
 Java Source Files:
 =================
-'package sysc3303.project': 	TftpClient.java
-			    	TftpServer.java
-			    	TftpErrorSimulator.java
+'package sysc3303.project': 
+	TftpClient.java
+	TftpServer.java
+	TftpErrorSimulator.java
+	TftpRequestListener.java
+	TftpServerFileTransfer.java
 
-'package sysc3303.project.packets': TftpAckPacket.java
-				    TftpDataPacket.java									    TftpErrorPacket.java
-				    TftpPacket.java
-				    TftpRequestPacket.java
+'package sysc3303.project.common': 
+	Log.java
+	TftpAbortExeption.java
+	TftpConnection.java
+	TftpAckPacket.java
+	TftpDataPacket.java								  
+	TftpErrorPacket.java
+	TftpPacket.java
+	TftpRequestPacket.java
+	
 
 
 Server
 ======
 Run to start the server. Start server first.
-Commands: help, stop, pwd
+Commands: help, stop, pwd,chdir, defaultdir
 
 Error Simulator
 ===============
 Run to start error simulator. Start error simulator before client.
-choose the error mode to simulate an error before running the client
+choose the error mode to simulate an error before running the client(default mode is normal mode)
 Commands: help(lists the available error modes),
-	  stop(stop the error simulator (when current transfers finish))
-          error(choose the error mode to simulate an error)
+	   stop(stop the error simulator (when current transfers finish))
+                     error(choose the error mode to simulate an error)
 	
 
 
@@ -48,9 +56,81 @@ Timing Diagram - PacketSizeError.jpeg
 Timing Diagram - Invalid TID.jpeg
 Timing Diagram - OpcodeError.jpeg
 Timing Diagram - RequestPacketError.jpeg
+Delayed_Ack_Packet_Diagram.JPG
+Duplicate_Ack_Packet_Diagram.JPG
+Lost_Ack_Packet_Diagram.JPG
+Delayed_Data_Packet_Diagram.JPG
+Duplicate_Data_Packet_Diagram.JPG
+Lost_Data_Packet_Diagram.JPG
 UCM Diagrams.pdf
-UMLClassDiagram.jpeg
+
+UML-ClassDiagram.jpeg
+
+diagram for error1.JPG
+
+diagram for error2.JPG
+
+diagram for Error3.JPG
+
+diagram Error6.JPG
 
 
 
-Files for the client are stored in "client_files", files for the server are stored in "server_files"
+Files for the client are stored in "client_files", 
+bat.txt
+bond.txt
+
+clientimage.jpeg
+.hide.txt (hidden file to test access violation)
+
+
+
+files for the server are stored in "server_files"
+soccer.txt
+.hidden.txt (hidden file to test access violation)
+
+
+
+
+
+Test case for Error code 03 (diskfull)
+
+--------------------------------------------------
+
+using chdir command in the server, change to a directory which is full or has space less than 1MB 
+and 
+send write request to server to write the file clientimage.jpeg(1MB). 
+
+The error for disk full will be returned. 
+
+Use command default dir to change to default directory
+
+
+
+chdir(Change the directory to read/write files)
+
+defaultdir(change to default directory)
+
+
+
+
+Test case for Error code 02 (Access violation )
+
+--------------------------------------------------------------
+
+Try to read hidden files on server:
+	
+ 	send read request to read the hidden file(read .hidden.txt).
+	
+	or send write request to write the hidden file (write .hide.txt)
+	Access violation error code will be returned
+
+
+
+Try to write a file to a read only folder:
+	
+	change the permissions on server_files folder to read only
+
+		(Right click on server_files folder--> properties --> Enable 'Read-only' under attributes  )
+	
+	Send a write request to write a file to the server
