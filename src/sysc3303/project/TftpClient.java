@@ -91,8 +91,10 @@ public class TftpClient {
 			throws SocketException {
 		try {
 			conn = new TftpConnection();
+			conn.setRemoteAddress(remoteAddress);
 			System.out.println("Connected to " + remoteAddress.toString() + ":"
 					+ serverRequestPort);
+			
 		} catch (SocketException e) {
 			System.out.println("Failed to connect to "
 					+ remoteAddress.toString() + ":" + serverRequestPort);

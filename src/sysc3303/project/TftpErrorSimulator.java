@@ -265,6 +265,7 @@ public class TftpErrorSimulator {
 		System.out.println("    help: prints this help menu");
 		System.out
 				.println("    stop: stop the error simulator (when current transfers finish)");
+		System.out.println("normal : normal mode ");
 		System.out.println("mode 0 : change packet opcode ");
 		System.out.println("mode 1: Remove the byte '0' after the file name");
 		System.out.println("mode 2: Remove the byte '0' after the mode");
@@ -302,6 +303,7 @@ public class TftpErrorSimulator {
 			}
 		}
 		System.out.println("Error simulator closed.");
+		System.out.println();
 		System.exit(0);
 	}
 

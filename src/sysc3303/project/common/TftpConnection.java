@@ -10,7 +10,7 @@ import java.net.SocketTimeoutException;
 public class TftpConnection {
 	private DatagramSocket socket;
 	private InetAddress remoteAddress;
-	private int requestPort = 68;
+	private int requestPort = 6800;
 	private int remoteTid = -1;
 	private DatagramPacket inDatagram = TftpPacket.createDatagramForReceiving();
 	private DatagramPacket resendDatagram;
@@ -68,7 +68,7 @@ public class TftpConnection {
 
 	public void sendAck(int blockNumber) throws TftpAbortException {
 		try {
-			send(TftpPacket.createAckPacket(blockNumber), true);
+			send(TftpPacket.createAckPacket(blockNumber), false);
 			Log.d("sent: ack #" + blockNumber);
 		} catch (Exception e) {
 			throw new TftpAbortException(e.getMessage());

@@ -120,6 +120,11 @@ class TftpServerFileTransfer extends Thread {
 				return;
 			}
 
+			if (!file.getParentFile().canWrite()) {
+				conn.sendAccessViolation("Cannot write to a readonly folder");
+				return;
+			}
+
 			FileOutputStream fs = new FileOutputStream(file);
 			int blockNumber = 0;
 			TftpDataPacket dataPk;
@@ -128,7 +133,16 @@ class TftpServerFileTransfer extends Thread {
 				try {
 					conn.sendAck(blockNumber);
 					dataPk = conn.receiveData(++blockNumber);
-					fs.write(dataPk.getFileData());
+					if (!file.getParentFile().canWrite()) {
+						conn.sendAccessViolation("Cannot write to a readonly folder");
+						return;
+					}
+					if (file.canWrite())
+						fs.write(dataPk.getFileData());
+					else {
+						conn.sendAccessViolation("Cannot write to a readonly file");
+						return;
+					}
 					fs.getFD().sync();
 				} catch (TftpAbortException e) {
 					Log.d("Aborting transfer of " + filename + ": "
@@ -158,8 +172,8 @@ class TftpServerFileTransfer extends Thread {
 			return;
 		} catch (IOException e) {
 			new File(filePath).delete();
+			conn.sendDiscFull(e.getMessage());
 			System.out.println("IOException with file: " + filename);
-			e.printStackTrace();
 			return;
 		}
 	}

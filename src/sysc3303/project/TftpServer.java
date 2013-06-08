@@ -1,5 +1,6 @@
 package sysc3303.project;
 
+import java.io.File;
 import java.net.InetAddress;
 import java.util.Scanner;
 
@@ -13,10 +14,13 @@ import sysc3303.project.common.TftpRequestPacket;
 public class TftpServer {
 	// Port on which to listen for requests (6900 for dev, 69 for submission)
 	private static final int LISTEN_PORT = 6900;
+	
+	private static final String defaultDir = System.getProperty("user.dir")
+			+ "/server_files/";
+
 
 	// Folder where files are read/written
-	private String publicFolder = System.getProperty("user.dir")
-			+ "/server_files/";
+	private String publicFolder = defaultDir;
 
 	// Current number of threads (used to know when we have stopped)
 	private int threadCount = 0;
@@ -28,6 +32,7 @@ public class TftpServer {
 	 * Constructor
 	 */
 	private TftpServer() {
+		new File(publicFolder).setWritable(true);
 		requestListener = new TftpRequestListener(this, LISTEN_PORT);
 		requestListener.start();
 	}
@@ -43,10 +48,11 @@ public class TftpServer {
 
 		while (true) {
 			System.out.print("Command: ");
-			String command = scanner.nextLine().toLowerCase();
+			String cmdLine = scanner.nextLine().toLowerCase();
+			String[] command = cmdLine.split("\\s+");
 
 			// Continue if blank line was passed
-			if (command.length() == 0) {
+			if (command[0].length() == 0) {
 				continue;
 			}
 
@@ -57,14 +63,29 @@ public class TftpServer {
 						.println("    stop: stop the server (when current transfers finish)");
 				System.out
 						.println("    pwd: prints out the public directory for file transfers");
-			} else if (command.equals("stop")) {
+				System.out
+				.println("    chdir: Change the directory for file transfer. e.g chdir /Volumes/dir1/");
+				System.out
+				.println("    defaultdir: Change the directory for file transfer to default public directory. e.g chdir /Volumes/dir1/");
+				
+			} else if (command[0].equals("stop")) {
 				System.out
 						.println("Stopping server (when current transfers finish)");
 				server.stop();
-			} else if (command.equals("pwd")) {
+			} else if (command[0].equals("pwd")) {
 				System.out.println("Current shared directory: "
 						+ server.getPublicFolder());
-			} else {
+			} else if (command[0].equals("chdir") 
+					&& command.length > 1 && command[1].length() > 0) {
+				if(new File(command[1]).isDirectory()){
+						if(!command[1].endsWith("/"))
+						server.publicFolder = command[1] + File.separator;
+				}else{
+					System.out.println("Invalid directory");
+				}
+			} else if (command[0].equals("defaultdir")) {
+				server.publicFolder = defaultDir;
+			} else{
 				System.out
 						.println("Invalid command. These are the available commands:");
 				System.out.println("    help: prints this help menu");
