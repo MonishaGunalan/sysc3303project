@@ -92,6 +92,7 @@ public class TftpClient {
 		try {
 			conn = new TftpConnection();
 			conn.setRemoteAddress(remoteAddress);
+			conn.setRequestPort(serverRequestPort);
 			System.out.println("Connected to " + remoteAddress.toString() + ":"
 					+ serverRequestPort);
 			

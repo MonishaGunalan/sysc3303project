@@ -42,7 +42,11 @@ class TftpServerFileTransfer extends Thread {
 	public void run() {
 		server.incrementThreadCount();
 
-		if (isReadRequest) {
+		// Disallow files that start with a "." (this is a choice we made for
+		// our server)
+		if (filename.charAt(0) == '.') {
+			conn.sendAccessViolation("This server rejects transfering unix hidden files (files that start with a \".\")");
+		} else if (isReadRequest) {
 			this.sendFileToClient();
 		} else {
 			this.receiveFileFromClient();
@@ -57,6 +61,7 @@ class TftpServerFileTransfer extends Thread {
 
 		FileInputStream fs;
 		try {
+
 			// Check that file exists
 			File file = new File(filePath);
 			if (!file.exists()) {
@@ -137,13 +142,14 @@ class TftpServerFileTransfer extends Thread {
 						conn.sendAccessViolation("Cannot write to a readonly folder");
 						return;
 					}
-					if (file.canWrite())
+
+					if (file.canWrite()) {
 						fs.write(dataPk.getFileData());
-					else {
+						fs.getFD().sync();
+					} else {
 						conn.sendAccessViolation("Cannot write to a readonly file");
 						return;
 					}
-					fs.getFD().sync();
 				} catch (TftpAbortException e) {
 					Log.d("Aborting transfer of " + filename + ": "
 							+ e.getMessage());
