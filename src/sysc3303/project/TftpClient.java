@@ -17,18 +17,13 @@ import sysc3303.project.common.TftpPacket;
 import sysc3303.project.common.TftpRequestPacket;
 
 public class TftpClient {
-	private InetAddress remoteAddress;
-	private int serverRequestPort = 6800;
+	private static int DEFAULT_REQUEST_PORT = 6900;
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
 	private TftpConnection conn;
+	private boolean connected = false;
 
 	public TftpClient() {
-		try {
-			remoteAddress = InetAddress.getLocalHost();
-		} catch (UnknownHostException e) {
-			System.out.println("Failed to get server address");
-		}
 	}
 
 	public static void main(String[] args) {
@@ -60,6 +55,16 @@ public class TftpClient {
 			} else if ((command[0].equals("write") || command[0].equals("send"))
 					&& command.length > 1 && command[1].length() > 0) {
 				c.sendFile(command[1]);
+			} else if ((command[0].equals("connect")) && command.length > 1
+					&& command[1].length() > 0) {
+				try {
+					c.connect(InetAddress.getByName(command[1]),
+							DEFAULT_REQUEST_PORT);
+				} catch (SocketException e) {
+					System.out.println("Failed to connect");
+				} catch (UnknownHostException e) {
+					System.out.println("Invalid hostname or IP address");
+				}
 			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
@@ -76,7 +81,12 @@ public class TftpClient {
 		System.out.println("    write filename: write file to server");
 		System.out.println("    send filename: alias for write filename");
 		System.out
+				.println("    connect ip|hostname: set the server IP or hostname (eg. connect 192.168.1.4)");
+		System.out
 				.println("    pwd: prints out the directory for file transfers");
+	}
+
+	public void setRemoteAddress(InetAddress remoteAddress) {
 	}
 
 	public String getPublicFolder() {
@@ -91,32 +101,42 @@ public class TftpClient {
 			throws SocketException {
 		try {
 			conn = new TftpConnection();
+
+			if (remoteAddress == null) {
+				throw new SocketException();
+			}
+
 			conn.setRemoteAddress(remoteAddress);
 			conn.setRequestPort(serverRequestPort);
+			connected = true;
 			System.out.println("Connected to " + remoteAddress.toString() + ":"
 					+ serverRequestPort);
-			
+
 		} catch (SocketException e) {
-			System.out.println("Failed to connect to "
-					+ remoteAddress.toString() + ":" + serverRequestPort);
+			connected = false;
+
+			if (remoteAddress == null) {
+				System.out.println("Server address not specified");
+			} else {
+				System.out.println("Failed to connect to "
+						+ remoteAddress.toString() + ":" + serverRequestPort);
+			}
 			throw e;
 		}
 	}
 
 	public void getFile(String filename) {
+		if (!connected) {
+			System.out.println("Failed: not connected to a server");
+			return;
+		}
+
 		String filePath = getPublicFolder() + filename;
 		try {
 			// Check write permissions
 			File file = new File(filePath);
 			if (file.exists() && !file.canWrite()) {
 				System.out.println("Cannot overwrite file: " + filename);
-				return;
-			}
-
-			// Connect to the server
-			try {
-				connect(remoteAddress, serverRequestPort);
-			} catch (SocketException e) {
 				return;
 			}
 
@@ -157,6 +177,11 @@ public class TftpClient {
 
 	public void sendFile(String filename) {
 		try {
+			if (!connected) {
+				System.out.println("Failed: not connected to a server");
+				return;
+			}
+
 			String filePath = getPublicFolder() + filename;
 
 			// Check that file exists
@@ -169,13 +194,6 @@ public class TftpClient {
 			// Check read permissions
 			if (!file.canRead()) {
 				System.out.println("Cannot read file: " + filename);
-				return;
-			}
-
-			// Connect to the server
-			try {
-				connect(remoteAddress, serverRequestPort);
-			} catch (SocketException e) {
 				return;
 			}
 
