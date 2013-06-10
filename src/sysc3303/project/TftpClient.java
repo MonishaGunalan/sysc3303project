@@ -46,6 +46,7 @@ public class TftpClient {
 			} else if (command[0].equals("stop")) {
 				System.out.println("Stopping client");
 				c.stop();
+				scanner.close();
 				return;
 			} else if (command[0].equals("pwd")) {
 				System.out.println("Current directory: " + c.getPublicFolder());

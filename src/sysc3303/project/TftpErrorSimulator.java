@@ -131,6 +131,7 @@ public class TftpErrorSimulator {
 				System.out
 						.println("Stopping simulator (when current transfers finish)");
 				errorSimulator.stop();
+				scanner.close();
 			} else if (command
 					.equalsIgnoreCase(ErrorCommands.NORMAL.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.NORMAL;

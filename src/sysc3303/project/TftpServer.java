@@ -72,6 +72,7 @@ public class TftpServer {
 				System.out
 						.println("Stopping server (when current transfers finish)");
 				server.stop();
+				scanner.close();
 			} else if (command[0].equals("pwd")) {
 				System.out.println("Current shared directory: "
 						+ server.getPublicFolder());
