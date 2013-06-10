@@ -61,6 +61,7 @@ class TftpRequestListener extends Thread {
 							dp = errorPacket.generateDatagram(dp.getAddress(),
 									dp.getPort());
 							errorSocket.send(dp);
+							errorSocket.close();
 						}
 					}
 				} catch (IllegalArgumentException e) {
@@ -74,6 +75,7 @@ class TftpRequestListener extends Thread {
 					dp = errorPacket.generateDatagram(dp.getAddress(),
 							dp.getPort());
 					errorSocket.send(dp);
+					errorSocket.close();
 				}
 			}
 		} catch (IOException e) {
