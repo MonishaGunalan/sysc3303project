@@ -234,10 +234,17 @@ public class TftpConnection {
 								// We received an old data packet, so send
 								// corresponding ack
 								echoAck(dataPk.getBlockNumber());
+							} else {
+								// Received future block, this is invalid
+								sendIllegalOperationError("Received future data block number: " + blockNumber);
 							}
 						} else if (pk.getType() == TftpPacket.Type.ACK) {
-							if (((TftpAckPacket) pk).getBlockNumber() == blockNumber) {
+							TftpAckPacket ackPk = (TftpAckPacket) pk;
+							if (ackPk.getBlockNumber() == blockNumber) {
 								return pk;
+							} else if (ackPk.getBlockNumber() > blockNumber) {
+								// Received future ack, this is invalid
+								sendIllegalOperationError("Received future ack block number: " + blockNumber);
 							}
 						}
 					} else if (pk instanceof TftpErrorPacket) {
