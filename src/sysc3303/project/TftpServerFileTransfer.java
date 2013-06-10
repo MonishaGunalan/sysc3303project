@@ -130,6 +130,11 @@ class TftpServerFileTransfer extends Thread {
 				return;
 			}
 
+			if (!file.canWrite()) {
+				conn.sendAccessViolation("Cannot write to a readonly file");
+				return;
+			}
+
 			FileOutputStream fs = new FileOutputStream(file);
 			int blockNumber = 0;
 			TftpDataPacket dataPk;
