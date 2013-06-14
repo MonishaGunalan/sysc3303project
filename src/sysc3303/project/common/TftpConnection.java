@@ -59,7 +59,7 @@ public class TftpConnection {
 
 		if (cacheForResend) {
 			resendDatagram = dp;
-		}else{
+		} else {
 			resendDatagram = null;
 		}
 
@@ -82,16 +82,16 @@ public class TftpConnection {
 
 	private void resendLastPacket() throws TftpAbortException {
 		if (resendDatagram == null) {
-			return;//throw new TftpAbortException("Cannot resend last packet");
+			return; // commented out to fix a limitation in error sim: throw new
+					// TftpAbortException("Cannot resend last packet");
 		}
 
 		try {
 			socket.send(resendDatagram);
-			Log.d("resent last non-error packet");
+			Log.d("Resending last transfer packet.");
 		} catch (IOException e) {
 			throw new TftpAbortException(e.getMessage());
 		}
-
 	}
 
 	private TftpPacket receive() throws IOException, TftpAbortException {
@@ -101,6 +101,9 @@ public class TftpConnection {
 			if (remoteTid > 0
 					&& (inDatagram.getPort() != remoteTid || !(inDatagram
 							.getAddress()).equals(remoteAddress))) {
+				Log.d("Received packet from invalid TID: "
+						+ addressToString(inDatagram.getAddress(),
+								inDatagram.getPort()));
 				sendUnkownTidError(inDatagram.getAddress(),
 						inDatagram.getPort());
 				continue;
@@ -120,7 +123,8 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.ILLEGAL_OPERATION, message);
 			send(pk);
-			Log.d("sent: illegal operation error with message: " + message);
+			Log.d("Sending error packet (Illegal Operation) with message: "
+					+ message);
 			throw new TftpAbortException(message);
 		} catch (IOException e) {
 			throw new TftpAbortException(message);
@@ -129,13 +133,15 @@ public class TftpConnection {
 
 	private void sendUnkownTidError(InetAddress address, int port) {
 		try {
+			String errMsg = "Stop hacking foo!";
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
-					TftpErrorPacket.ErrorType.UNKOWN_TID, "Stop hacking foo!");
+					TftpErrorPacket.ErrorType.UNKOWN_TID, errMsg);
 			socket.send(pk.generateDatagram(address, port));
-			Log.d("sent: unknown tid error to "
-					+ addressToString(address, port));
+			Log.d("Sending error packet (Unknown TID) to "
+					+ addressToString(address, port) + " with message: "
+					+ errMsg);
 		} catch (Exception e) {
-			Log.d("failed to send unkown tid error... oh well, life goes on");
+			// Ignore
 		}
 	}
 
@@ -144,7 +150,8 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.FILE_NOT_FOUND, message);
 			send(pk);
-			Log.d("sent: file not found");
+			Log.d("Sending error packet (File not Found) with message: "
+					+ message);
 		} catch (IOException e) {
 			// Ignore
 		}
@@ -153,9 +160,10 @@ public class TftpConnection {
 	public void sendDiscFull(String message) {
 		try {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
-					TftpErrorPacket.ErrorType.DISC_FULL_OR_ALLOCATION_EXCEEDED, message);
+					TftpErrorPacket.ErrorType.DISC_FULL_OR_ALLOCATION_EXCEEDED,
+					message);
 			send(pk);
-			Log.d("sent: disc full or allocation exceeded");
+			Log.d("Sending error packet (Disc Full) with message: " + message);
 		} catch (IOException e) {
 			// Ignore
 		}
@@ -166,7 +174,8 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.ACCESS_VIOLATION, message);
 			send(pk);
-			Log.d("sent: access violation");
+			Log.d("Sending error packet (Access Violation) with message: "
+					+ message);
 		} catch (IOException e) {
 			// Ignore
 		}
@@ -177,7 +186,8 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.FILE_ALREADY_EXISTS, message);
 			send(pk);
-			Log.d("sent: file already exists");
+			Log.d("Sending error packet (File Already Exists) with message: "
+					+ message);
 		} catch (IOException e) {
 			// Ignore
 		}
@@ -236,7 +246,8 @@ public class TftpConnection {
 								echoAck(dataPk.getBlockNumber());
 							} else {
 								// Received future block, this is invalid
-								sendIllegalOperationError("Received future data block number: " + blockNumber);
+								sendIllegalOperationError("Received future data block number: "
+										+ blockNumber);
 							}
 						} else if (pk.getType() == TftpPacket.Type.ACK) {
 							TftpAckPacket ackPk = (TftpAckPacket) pk;
@@ -244,7 +255,8 @@ public class TftpConnection {
 								return pk;
 							} else if (ackPk.getBlockNumber() > blockNumber) {
 								// Received future ack, this is invalid
-								sendIllegalOperationError("Received future ack block number: " + blockNumber);
+								sendIllegalOperationError("Received future ack block number: "
+										+ blockNumber);
 							}
 						}
 					} else if (pk instanceof TftpErrorPacket) {
@@ -264,8 +276,12 @@ public class TftpConnection {
 					}
 				} catch (SocketTimeoutException e) {
 					if (timeouts >= maxResendAttempts) {
-						throw new TftpAbortException("Connection timed out");
+						throw new TftpAbortException(
+								"Connection timed out. Giving up.");
 					}
+
+					Log.d("Waiting to receive " + type + " #" + blockNumber
+							+ " timed out, trying again.");
 
 					timeouts++;
 					resendLastPacket();

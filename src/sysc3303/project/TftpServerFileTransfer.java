@@ -101,6 +101,8 @@ class TftpServerFileTransfer extends Thread {
 				blockNumber++;
 			} while (bytesRead == TftpDataPacket.MAX_FILE_DATA_LENGTH);
 			fs.close();
+
+			Log.d("Done sending file \'" + filename + "\' to client");
 		} catch (FileNotFoundException e1) {
 			Log.d("File not found: " + filename);
 			conn.sendFileNotFound("Could not find: " + filename);
@@ -172,6 +174,7 @@ class TftpServerFileTransfer extends Thread {
 				// no worries, this ack was just a courtesy
 			}
 
+			Log.d("Done receiving file \'" + filename + "\' from client");
 			fs.close();
 		} catch (FileNotFoundException e) {
 			new File(filePath).delete();
