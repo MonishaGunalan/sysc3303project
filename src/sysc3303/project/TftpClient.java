@@ -59,10 +59,34 @@ public class TftpClient {
 			} else if ((command[0].equals("connect")) && command.length > 1
 					&& command[1].length() > 0) {
 				try {
-					c.setServer(InetAddress.getByName(command[1]),
-							DEFAULT_REQUEST_PORT);
+					String connectComponents[] = command[1].split(":");
+					int serverPort = DEFAULT_REQUEST_PORT;
+					if (connectComponents.length >= 2) {
+						try {
+							serverPort = Integer.parseInt(connectComponents[1]);
+							if (serverPort < 0) {
+								System.out
+										.println("Invalid port number. Port number cannot be negative. Failed to connect.");
+								continue;
+							}
+						} catch (NumberFormatException e) {
+							System.out
+									.println("Invalid port number. Port number must be an integer. Failed to connect.");
+							continue;
+						}
+					}
+					c.setServer(InetAddress.getByName(connectComponents[0]),
+							serverPort);
 				} catch (UnknownHostException e) {
 					System.out.println("Failed to connect to " + command[1]);
+				}
+			} else if (command[0].equals("show") && command.length > 1) {
+				if (command[1].equals("connection")) {
+					System.out.println(c.getConnectionString());
+				} else {
+					System.out
+							.println("Invalid command. These are the available commands:");
+					printCommandOptions();
 				}
 			} else {
 				System.out
@@ -90,6 +114,11 @@ public class TftpClient {
 		this.serverRequestPort = serverRequestPort;
 	}
 
+	public String getConnectionString() {
+		return "Currently connected to: "
+				+ addressToString(serverAddress, serverRequestPort);
+	}
+
 	public String getPublicFolder() {
 		return publicFolder;
 	}
@@ -115,6 +144,14 @@ public class TftpClient {
 			System.out.println(errMsg);
 			throw new TftpAbortException(errMsg);
 		}
+	}
+
+	static private String addressToString(InetAddress addr, int port) {
+		if (addr == null) {
+			return "not connected";
+		}
+
+		return addr.toString() + ":" + port;
 	}
 
 	public void getFile(String filename) {
