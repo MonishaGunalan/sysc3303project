@@ -9,6 +9,7 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+
 import sysc3303.project.common.TftpAckPacket;
 import sysc3303.project.common.TftpDataPacket;
 import sysc3303.project.common.TftpPacket;
@@ -28,7 +29,7 @@ public class TftpErrorSimulator {
 				"mode 8"), ERROR_DELAY_PACKET("mode 9"), ERROR_DUPLICATE_PACKET(
 				"mode 10"), ERROR_APPEND_DATA("mode 11"), ERROR_APPEND_ACK(
 				"mode 12"), ERROR_SHRINK_DATA("mode 13"), ERROR_SHRINK_ACK(
-				"mode 14");
+				"mode 14"), ERROR_CHANGE_BLOCK_NUM("mode 18");
 
 		/**
 		 * @param text
@@ -55,7 +56,16 @@ public class TftpErrorSimulator {
 
 		public boolean extendMenu2() {
 			return (this == ERROR_DELAY_PACKET
-					|| this == ERROR_DUPLICATE_PACKET || this == ERROR_INVALID_TID);
+					|| this == ERROR_DUPLICATE_PACKET
+					|| this == ERROR_INVALID_TID || this == ERROR_CHANGE_BLOCK_NUM);
+		}
+		
+		public boolean extendMenu3(){
+			return(this == ERROR_DELAY_PACKET
+					|| this == ERROR_DUPLICATE_PACKET
+					|| this == ERROR_INVALID_TID || this == ERROR_CHANGE_BLOCK_NUM || this == ERROR_SHRINK_ACK
+					|| this == ERROR_APPEND_DATA || this == ERROR_LOSE_PACKET || this == ERROR_APPEND_ACK 
+					|| this == ERROR_SHRINK_DATA || this == ERROR_CHANGE_OPCODE) ;
 		}
 	}
 
@@ -91,6 +101,9 @@ public class TftpErrorSimulator {
 
 	private ErrorCommands errorCommand = ErrorCommands.NORMAL;
 	private PacketType packetType = PacketType.ACK;
+	private int blockNumber;
+	private int newBlocknum;
+	private boolean isChanged = false;
 
 	/**
 	 * Constructor
@@ -98,6 +111,7 @@ public class TftpErrorSimulator {
 	public TftpErrorSimulator() {
 		try {
 			serverAddress = InetAddress.getLocalHost();
+			// serverAddress = InetAddress.getByName("134.117.59.119");
 			requestReceive = new RequestReceiveThread();
 			requestReceive.start();
 		} catch (UnknownHostException e) {
@@ -124,9 +138,8 @@ public class TftpErrorSimulator {
 
 			if (command.equals("help")) {
 				printHelp();
-
-				System.out
-						.println("stop : close the client (waits until current transmissions are done.");
+				errorSimulator.errorCommand = ErrorCommands.NORMAL;
+				
 			} else if (command.equals("stop")) {
 				System.out
 						.println("Stopping simulator (when current transfers finish)");
@@ -139,6 +152,11 @@ public class TftpErrorSimulator {
 					.equalsIgnoreCase(ErrorCommands.ERROR_CHANGE_OPCODE
 							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_CHANGE_OPCODE;
+			} else if (command
+					.equalsIgnoreCase(ErrorCommands.ERROR_CHANGE_BLOCK_NUM
+							.toString())) {
+				errorSimulator.errorCommand = ErrorCommands.ERROR_CHANGE_BLOCK_NUM;
+
 			} else if (command
 					.equalsIgnoreCase(ErrorCommands.ERROR_REMOVE_FILENAME_DELIMITER
 							.toString())) {
@@ -212,9 +230,10 @@ public class TftpErrorSimulator {
 							.toString())) {
 				errorSimulator.errorCommand = ErrorCommands.ERROR_DUPLICATE_PACKET;
 			} else {
+				errorSimulator.errorCommand = ErrorCommands.NORMAL;
 				printHelp();
 			}
-
+			
 			// now if the error command has to know what packet it has to handle
 			// then show the menu
 			if (errorSimulator.errorCommand.extendMenu1()) {
@@ -256,6 +275,13 @@ public class TftpErrorSimulator {
 						isValid = false;
 					}
 				}
+				
+				
+			}
+			if(errorSimulator.errorCommand.extendMenu3() && errorSimulator.packetType != PacketType.REQUEST){
+				errorSimulator.blockNumber = chooseBlockNum("Choose the Block Number: ");
+				if(errorSimulator.errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM)
+					errorSimulator.newBlocknum = chooseBlockNum("Change the Block Number to: ");
 			}
 		}
 
@@ -278,6 +304,8 @@ public class TftpErrorSimulator {
 		System.out.println("mode 8: Lose a packet");
 		System.out.println("mode 9: Delay a packet");
 		System.out.println("mode 10: Duplicate a packet");
+		System.out.println("mode 18: Change Block Number");
+
 	}
 
 	synchronized public void incrementThreadCount() {
@@ -286,6 +314,9 @@ public class TftpErrorSimulator {
 
 	synchronized public void decrementThreadCount() {
 		threadCount--;
+		if (threadCount <= 0) {
+			notifyAll();
+		}
 	}
 
 	synchronized public int getThreadCount() {
@@ -298,9 +329,11 @@ public class TftpErrorSimulator {
 		// wait for threads to finish
 		while (getThreadCount() > 0) {
 			try {
-				Thread.sleep(20);
+				wait();
 			} catch (InterruptedException e) {
-				// Ignore errors
+				System.out
+						.println("Stopping was interrupted. Failed to stop properly.");
+				System.exit(1);
 			}
 		}
 		System.out.println("Error simulator closed.");
@@ -332,6 +365,7 @@ public class TftpErrorSimulator {
 							&& packetType == PacketType.REQUEST) {
 						socket.receive(dp);
 					}
+					isChanged = false;
 					new ForwardThread(dp).start();
 				}
 			} catch (IOException e) {
@@ -400,31 +434,31 @@ public class TftpErrorSimulator {
 					if (errorCommand == ErrorCommands.ERROR_APPEND_DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(appendData(dp));
 					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(shrinkData(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(shrinkData(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_APPEND_ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(appendAckPacket(dp));
 					} else if (errorCommand == ErrorCommands.ERROR_INVALID_TID) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
@@ -432,7 +466,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
@@ -443,20 +477,37 @@ public class TftpErrorSimulator {
 							&& packetType == PacketType.DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_OPCODE
 							&& packetType == PacketType.ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
+
+						// *******************/
+					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
+							&& packetType == PacketType.DATA
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
+							&& ((TftpDataPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+						socket.send(changeBlockNum(dp));
+					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
+							&& packetType == PacketType.ACK
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+						socket.send(changeBlockNum(dp));
+
+						// *******************/
+
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							// Lose the packet, i.e wait for server to send the
 							// data again
 							System.out
@@ -471,7 +522,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							// Lose the packet, i.e wait for client to send the
 							// data again
 							System.out
@@ -500,7 +551,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 							System.out
@@ -542,7 +593,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 
@@ -579,7 +630,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							System.out.println("***Duplicate the Packet***");
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
@@ -613,7 +664,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							System.out.println("***Duplicate the Packet***");
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
@@ -664,25 +715,25 @@ public class TftpErrorSimulator {
 					if (errorCommand == ErrorCommands.ERROR_APPEND_DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(appendData(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(shrinkData(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_SHRINK_ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(shrinkData(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_APPEND_ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(appendAckPacket(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_INVALID_TID) {
@@ -690,7 +741,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
@@ -699,7 +750,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
@@ -710,22 +761,39 @@ public class TftpErrorSimulator {
 							&& packetType == PacketType.DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
 
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_OPCODE
 							&& packetType == PacketType.ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == 2) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
+
+						// ************************
+
+					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
+							&& packetType == PacketType.DATA
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
+							&& ((TftpDataPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+						socket.send(changeBlockNum(dp));
+					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
+							&& packetType == PacketType.ACK
+							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
+							&& ((TftpAckPacket) TftpPacket
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+						socket.send(changeBlockNum(dp));
+
+						// ******************************
 
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							System.out.println("***Lose the Packet***");
 							// Lose the packet, i.e wait for server to send the
 							// data back
@@ -739,7 +807,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							System.out.println("***Lose the Packet***");
 							// Lose the packet, i.e wait for client to send the
 							// data again
@@ -765,7 +833,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 							System.out.println("***Delay the Packet***");
@@ -805,7 +873,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 
@@ -842,7 +910,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 								&& ((TftpDataPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 							System.out.println("***Duplicate the Packet***");
@@ -873,7 +941,7 @@ public class TftpErrorSimulator {
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
 										.createFromDatagram(dp))
-										.getBlockNumber() == 2) {
+										.getBlockNumber() == blockNumber) {
 							DatagramPacket dp1 = new DatagramPacket(
 									dp.getData(), dp.getLength());
 							System.out.println("***Duplicate the Packet***");
@@ -1021,5 +1089,37 @@ public class TftpErrorSimulator {
 		modData[data.length + 1] = data[1];
 		return new DatagramPacket(modData, modData.length, packet.getAddress(),
 				packet.getPort());
+	}
+
+	private DatagramPacket changeBlockNum(DatagramPacket packet) {
+		byte[] data = packet.getData();
+		data[2] = (byte) ((newBlocknum >> 8) & 0xFF);
+		data[3] = (byte) (newBlocknum & 0xFF);
+		
+		isChanged = true;
+
+		return new DatagramPacket(data, packet.getLength(), packet.getAddress(),
+				packet.getPort());
+	}
+
+	private static int chooseBlockNum(String message) {
+		boolean validBlock = false;
+		Scanner scanner2 = new Scanner(System.in);
+		int blkNum =0;
+	
+		while (!validBlock) {
+			System.out.print(message);
+			blkNum = scanner2.nextInt();
+			
+			if (blkNum > 0 && blkNum <= 0xFFFF) {
+				validBlock = true;
+				
+			} else {
+				System.out
+					.print("Invalid command: The block Number should be between 1 and 65535(inclusive)");
+			}
+
+		}
+		return blkNum;
 	}
 }
