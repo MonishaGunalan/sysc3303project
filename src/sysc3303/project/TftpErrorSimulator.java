@@ -9,7 +9,6 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
-
 import sysc3303.project.common.TftpAckPacket;
 import sysc3303.project.common.TftpDataPacket;
 import sysc3303.project.common.TftpPacket;
@@ -59,13 +58,15 @@ public class TftpErrorSimulator {
 					|| this == ERROR_DUPLICATE_PACKET
 					|| this == ERROR_INVALID_TID || this == ERROR_CHANGE_BLOCK_NUM);
 		}
-		
-		public boolean extendMenu3(){
-			return(this == ERROR_DELAY_PACKET
+
+		public boolean extendMenu3() {
+			return (this == ERROR_DELAY_PACKET
 					|| this == ERROR_DUPLICATE_PACKET
-					|| this == ERROR_INVALID_TID || this == ERROR_CHANGE_BLOCK_NUM || this == ERROR_SHRINK_ACK
-					|| this == ERROR_APPEND_DATA || this == ERROR_LOSE_PACKET || this == ERROR_APPEND_ACK 
-					|| this == ERROR_SHRINK_DATA || this == ERROR_CHANGE_OPCODE) ;
+					|| this == ERROR_INVALID_TID
+					|| this == ERROR_CHANGE_BLOCK_NUM
+					|| this == ERROR_SHRINK_ACK || this == ERROR_APPEND_DATA
+					|| this == ERROR_LOSE_PACKET || this == ERROR_APPEND_ACK
+					|| this == ERROR_SHRINK_DATA || this == ERROR_CHANGE_OPCODE);
 		}
 	}
 
@@ -139,7 +140,7 @@ public class TftpErrorSimulator {
 			if (command.equals("help")) {
 				printHelp();
 				errorSimulator.errorCommand = ErrorCommands.NORMAL;
-				
+
 			} else if (command.equals("stop")) {
 				System.out
 						.println("Stopping simulator (when current transfers finish)");
@@ -178,11 +179,13 @@ public class TftpErrorSimulator {
 					if (command
 							.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_DATA
 									.toString())) {
+						errorSimulator.packetType = PacketType.DATA;
 						errorSimulator.errorCommand = ErrorCommands.ERROR_APPEND_DATA;
 						isValid = true;
 					} else if (command
 							.equalsIgnoreCase(ErrorCommands.ERROR_APPEND_ACK
 									.toString())) {
+						errorSimulator.packetType = PacketType.ACK;
 						errorSimulator.errorCommand = ErrorCommands.ERROR_APPEND_ACK;
 						isValid = true;
 					} else {
@@ -200,11 +203,13 @@ public class TftpErrorSimulator {
 					if (command
 							.equalsIgnoreCase(ErrorCommands.ERROR_SHRINK_DATA
 									.toString())) {
+						errorSimulator.packetType = PacketType.DATA;
 						errorSimulator.errorCommand = ErrorCommands.ERROR_SHRINK_DATA;
 						isValid = true;
 					} else if (command
 							.equalsIgnoreCase(ErrorCommands.ERROR_SHRINK_ACK
 									.toString())) {
+						errorSimulator.packetType = PacketType.ACK;
 						errorSimulator.errorCommand = ErrorCommands.ERROR_SHRINK_ACK;
 						isValid = true;
 					} else {
@@ -233,7 +238,7 @@ public class TftpErrorSimulator {
 				errorSimulator.errorCommand = ErrorCommands.NORMAL;
 				printHelp();
 			}
-			
+
 			// now if the error command has to know what packet it has to handle
 			// then show the menu
 			if (errorSimulator.errorCommand.extendMenu1()) {
@@ -275,12 +280,12 @@ public class TftpErrorSimulator {
 						isValid = false;
 					}
 				}
-				
-				
+
 			}
-			if(errorSimulator.errorCommand.extendMenu3() && errorSimulator.packetType != PacketType.REQUEST){
+			if (errorSimulator.errorCommand.extendMenu3()
+					&& errorSimulator.packetType != PacketType.REQUEST) {
 				errorSimulator.blockNumber = chooseBlockNum("Choose the Block Number: ");
-				if(errorSimulator.errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM)
+				if (errorSimulator.errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM)
 					errorSimulator.newBlocknum = chooseBlockNum("Change the Block Number to: ");
 			}
 		}
@@ -491,13 +496,15 @@ public class TftpErrorSimulator {
 							&& packetType == PacketType.DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber
+							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
 							&& packetType == PacketType.ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber
+							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
 
 						// *******************/
@@ -777,13 +784,15 @@ public class TftpErrorSimulator {
 							&& packetType == PacketType.DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
 							&& ((TftpDataPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber
+							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
 							&& packetType == PacketType.ACK
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 							&& ((TftpAckPacket) TftpPacket
-									.createFromDatagram(dp)).getBlockNumber() == blockNumber && !isChanged) {
+									.createFromDatagram(dp)).getBlockNumber() == blockNumber
+							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
 
 						// ******************************
@@ -1095,28 +1104,35 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		data[2] = (byte) ((newBlocknum >> 8) & 0xFF);
 		data[3] = (byte) (newBlocknum & 0xFF);
-		
+
 		isChanged = true;
 
-		return new DatagramPacket(data, packet.getLength(), packet.getAddress(),
-				packet.getPort());
+		return new DatagramPacket(data, packet.getLength(),
+				packet.getAddress(), packet.getPort());
 	}
 
 	private static int chooseBlockNum(String message) {
 		boolean validBlock = false;
 		Scanner scanner2 = new Scanner(System.in);
-		int blkNum =0;
-	
+		int blkNum = 0;
+
 		while (!validBlock) {
 			System.out.print(message);
-			blkNum = scanner2.nextInt();
-			
-			if (blkNum > 0 && blkNum <= 0xFFFF) {
-				validBlock = true;
-				
-			} else {
+			if (scanner2.hasNextInt()) {
+				blkNum = scanner2.nextInt();
+
+				if (blkNum > 0 && blkNum <= 0xFFFF) {
+					validBlock = true;
+
+				} else {
+					System.out
+							.println("Invalid command: The block Number should be between 1 and 65535(inclusive)");
+				}
+			}else{
+				scanner2.nextLine();
 				System.out
-					.print("Invalid command: The block Number should be between 1 and 65535(inclusive)");
+				.println("Invalid command: The block Number should be an Integer between 1 and 65535(inclusive)");
+				
 			}
 
 		}
