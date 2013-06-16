@@ -261,14 +261,18 @@ public class TftpConnection {
 						}
 					} else if (pk instanceof TftpErrorPacket) {
 						TftpErrorPacket errorPk = (TftpErrorPacket) pk;
+						Log.d("Received error packet. Code: "
+								+ errorPk.getCode() + ", Type: "
+								+ errorPk.getErrorType().toString()
+								+ ", Message: \"" + errorPk.getErrorMessage()
+								+ "\"");
+
 						if (errorPk.shouldAbortTransfer()) {
+							Log.d("Aborting transfer");
 							throw new TftpAbortException(
 									errorPk.getErrorMessage());
 						} else {
-							Log.d("received error of type "
-									+ errorPk.getType().toString()
-									+ " with message: "
-									+ errorPk.getErrorMessage());
+							Log.d("Continuing with transfer");
 						}
 					} else if (pk instanceof TftpRequestPacket) {
 						throw new TftpAbortException(
@@ -287,7 +291,7 @@ public class TftpConnection {
 					resendLastPacket();
 				}
 			}
-		} catch (Exception e) {
+		} catch (IOException e) {
 			throw new TftpAbortException(e.getMessage());
 		}
 	}

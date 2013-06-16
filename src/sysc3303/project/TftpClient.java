@@ -29,7 +29,7 @@ public class TftpClient {
 	public static void main(String[] args) {
 		TftpClient c = new TftpClient();
 		Scanner scanner = new Scanner(System.in);
-		
+
 		try {
 			c.setServer(InetAddress.getLocalHost(), DEFAULT_REQUEST_PORT);
 		} catch (UnknownHostException e1) {
@@ -198,12 +198,12 @@ public class TftpClient {
 			fs.close();
 		} catch (TftpAbortException e) {
 			new File(filePath).delete();
-			System.out.println("Failed to get " + filename + ": "
-					+ e.getMessage());
+			System.out.println("Failed to get " + filename + ": " + "\""
+					+ e.getMessage() + "\"");
 		} catch (IOException e) {
 			new File(filePath).delete();
 			System.out.println("IOException: failed to get " + filename + ": "
-					+ e.getMessage());
+					+ "\"" + e.getMessage() + "\"");
 		}
 	}
 
@@ -257,11 +257,11 @@ public class TftpClient {
 
 			fs.close();
 		} catch (TftpAbortException e) {
-			System.out.println("Failed to send " + filename + ": "
-					+ e.getMessage());
+			System.out.println("Failed to send " + filename + ": " + "\""
+					+ e.getMessage() + "\"");
 		} catch (IOException e) {
 			System.out.println("IOException: failed to send " + filename + ": "
-					+ e.getMessage());
+					+ "\"" + e.getMessage() + "\"");
 		}
 	}
 }

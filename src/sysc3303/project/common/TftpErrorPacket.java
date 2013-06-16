@@ -52,11 +52,16 @@ public class TftpErrorPacket extends TftpPacket {
 			throw new IllegalArgumentException();
 		}
 		this.errorType = errorType;
+		this.type = Type.ERROR;
 		this.errorMessage = (null == errorMessage) ? "" : errorMessage;
 	}
 
 	public ErrorType getErrorType() {
 		return this.errorType;
+	}
+	
+	public int getCode() {
+		return this.errorType.getCode();
 	}
 
 	public String getErrorMessage() {
