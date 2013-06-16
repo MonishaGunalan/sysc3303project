@@ -14,10 +14,9 @@ import sysc3303.project.common.TftpRequestPacket;
 public class TftpServer {
 	// Port on which to listen for requests (6900 for dev, 69 for submission)
 	private static final int LISTEN_PORT = 6900;
-	
+
 	private static final String defaultDir = System.getProperty("user.dir")
 			+ "/server_files/";
-
 
 	// Folder where files are read/written
 	private String publicFolder = defaultDir;
@@ -64,10 +63,10 @@ public class TftpServer {
 				System.out
 						.println("    pwd: prints out the public directory for file transfers");
 				System.out
-				.println("    chdir: Change the directory for file transfer. e.g chdir /Volumes/dir1/");
+						.println("    chdir: Change the directory for file transfer. e.g chdir /Volumes/dir1/");
 				System.out
-				.println("    defaultdir: Change the directory for file transfer to default public directory. e.g chdir /Volumes/dir1/");
-				
+						.println("    defaultdir: Change the directory for file transfer to default public directory. e.g chdir /Volumes/dir1/");
+
 			} else if (command[0].equals("stop")) {
 				System.out
 						.println("Stopping server (when current transfers finish)");
@@ -76,17 +75,17 @@ public class TftpServer {
 			} else if (command[0].equals("pwd")) {
 				System.out.println("Current shared directory: "
 						+ server.getPublicFolder());
-			} else if (command[0].equals("chdir") 
-					&& command.length > 1 && command[1].length() > 0) {
-				if(new File(command[1]).isDirectory()){
-						if(!command[1].endsWith("/"))
+			} else if (command[0].equals("chdir") && command.length > 1
+					&& command[1].length() > 0) {
+				if (new File(command[1]).isDirectory()) {
+					if (!command[1].endsWith("/"))
 						server.publicFolder = command[1] + File.separator;
-				}else{
+				} else {
 					System.out.println("Invalid directory");
 				}
 			} else if (command[0].equals("defaultdir")) {
 				server.publicFolder = defaultDir;
-			} else{
+			} else {
 				System.out
 						.println("Invalid command. These are the available commands:");
 				System.out.println("    help: prints this help menu");
@@ -104,6 +103,9 @@ public class TftpServer {
 
 	synchronized public void decrementThreadCount() {
 		threadCount--;
+		if (threadCount <= 0) {
+			notifyAll();
+		}
 	}
 
 	synchronized public int getThreadCount() {
@@ -115,11 +117,12 @@ public class TftpServer {
 		System.out.println("Stopping... waiting for threads to finish");
 		while (getThreadCount() > 0) {
 			// Wait for threads to finish
-			// TODO: future version could use wait/notify
 			try {
-				Thread.sleep(20);
-			} catch (InterruptedException e) {
-				// Ignore errors
+				wait();
+			} catch (InterruptedException e1) {
+				System.out
+						.println("Stopping was interrupted. Failed to stop properly.");
+				System.exit(1);
 			}
 		}
 		System.out.println("Exiting");
