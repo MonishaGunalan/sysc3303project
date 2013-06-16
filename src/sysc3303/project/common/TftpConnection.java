@@ -101,7 +101,7 @@ public class TftpConnection {
 			if (remoteTid > 0
 					&& (inDatagram.getPort() != remoteTid || !(inDatagram
 							.getAddress()).equals(remoteAddress))) {
-				Log.d("Received packet from invalid TID: "
+				Log.d("****** Received packet from invalid TID: "
 						+ addressToString(inDatagram.getAddress(),
 								inDatagram.getPort()));
 				sendUnkownTidError(inDatagram.getAddress(),
@@ -137,7 +137,7 @@ public class TftpConnection {
 			TftpErrorPacket pk = TftpPacket.createErrorPacket(
 					TftpErrorPacket.ErrorType.UNKOWN_TID, errMsg);
 			socket.send(pk.generateDatagram(address, port));
-			Log.d("Sending error packet (Unknown TID) to "
+			Log.d("*******  Sending error packet (Unknown TID) to "
 					+ addressToString(address, port) + " with message: "
 					+ errMsg);
 		} catch (Exception e) {
