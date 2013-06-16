@@ -247,7 +247,7 @@ public class TftpConnection {
 							} else {
 								// Received future block, this is invalid
 								sendIllegalOperationError("Received future data block number: "
-										+ blockNumber);
+										+ dataPk.getBlockNumber());
 							}
 						} else if (pk.getType() == TftpPacket.Type.ACK) {
 							TftpAckPacket ackPk = (TftpAckPacket) pk;
