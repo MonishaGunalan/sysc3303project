@@ -36,14 +36,14 @@ public class TftpRequestPacket extends TftpPacket {
 	TftpRequestPacket(String filename, Action action, Mode mode)
 			throws IllegalArgumentException {
 		// Make sure our parameters are not null and filename isn't blank
-		if (filename == null || filename.length() == 0|| action == null
+		if (filename == null || filename.length() == 0 || action == null
 				|| mode == null) {
 			String message = "Missing data in the request packet";
-			if(filename == null || filename.length() == 0)
+			if (filename == null || filename.length() == 0)
 				message = "Missing file name";
-			else if(action == null)
+			else if (action == null)
 				message = "Not a read or write request";
-			else if(mode == null)
+			else if (mode == null)
 				message = "Invalid transfer mode";
 			throw new IllegalArgumentException(message);
 		}
@@ -88,7 +88,8 @@ public class TftpRequestPacket extends TftpPacket {
 		Mode mode;
 
 		// Make sure data is not null and is long enough
-		if (packetData == null || packetData.length < packetLength || packetLength < MIN_LENGTH) {
+		if (packetData == null || packetData.length < packetLength
+				|| packetLength < MIN_LENGTH) {
 			throw new IllegalArgumentException("Data is not long enough");
 		}
 
@@ -100,7 +101,9 @@ public class TftpRequestPacket extends TftpPacket {
 		} else if (packetData[1] == 2) {
 			action = Action.WRITE;
 		} else {
-			throw new IllegalArgumentException("Invalid OP code");
+			int opcode = ((packetData[0] << 8) & 0xFF00)
+					| (packetData[1] & 0xFF);
+			throw new IllegalArgumentException("Invalid OP code: " + opcode);
 		}
 
 		// Extract the filename
@@ -124,17 +127,18 @@ public class TftpRequestPacket extends TftpPacket {
 
 		// Save the transfer mode
 		String modeStr = modeStrBuilder.toString().toLowerCase();
-		if (modeStr.equals("ascii")) {
+		if (modeStr.equals("netascii")) {
 			mode = Mode.ASCII;
 		} else if (modeStr.equals("octet")) {
 			mode = Mode.OCTET;
 		} else {
-			throw new IllegalArgumentException("Invalid transfer mode");
+			throw new IllegalArgumentException("Invalid transfer mode: "
+					+ modeStr);
 		}
 
 		// Check for the terminating 0 and make sure there is no more data
 		if (packetData[packetLength - 1] != 0) {
-			throw new IllegalArgumentException("Trailing 0 not found");
+			throw new IllegalArgumentException("Trailing 0 not found after mode");
 		}
 
 		// Create a RequestPacket

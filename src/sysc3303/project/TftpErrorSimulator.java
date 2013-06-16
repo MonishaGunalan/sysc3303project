@@ -1037,7 +1037,7 @@ public class TftpErrorSimulator {
 				packet.getPort());
 	}
 
-	// Error - Change to invalid mode (other than NetAscii and Octet) in the
+	// Error - Change to invalid mode (other than netascii and Octet) in the
 	// request packet
 	private DatagramPacket modifyMode(DatagramPacket packet) {
 		byte[] data = packet.getData();
@@ -1045,9 +1045,11 @@ public class TftpErrorSimulator {
 		int i = 1;
 		while (data[++i] != 0 && i < data.length)
 			;
-		byte[] invalidMode = ("acctet").getBytes();
+		byte[] invalidMode = ("abc").getBytes();
+		i++;
 		for (int index = 0; index < invalidMode.length; index++)
 			data[i + index] = invalidMode[index];
+
 		return new DatagramPacket(data, data.length, packet.getAddress(),
 				packet.getPort());
 	}
