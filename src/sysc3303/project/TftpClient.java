@@ -17,7 +17,7 @@ import sysc3303.project.common.TftpPacket;
 import sysc3303.project.common.TftpRequestPacket;
 
 public class TftpClient {
-	private static int DEFAULT_REQUEST_PORT = 6800;
+	private static int DEFAULT_REQUEST_PORT = 6900;
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
 	InetAddress serverAddress;
@@ -29,6 +29,12 @@ public class TftpClient {
 	public static void main(String[] args) {
 		TftpClient c = new TftpClient();
 		Scanner scanner = new Scanner(System.in);
+		
+		try {
+			c.setServer(InetAddress.getLocalHost(), DEFAULT_REQUEST_PORT);
+		} catch (UnknownHostException e1) {
+			// ignore
+		}
 
 		while (true) {
 			System.out.print("Command: ");
