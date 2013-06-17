@@ -126,8 +126,9 @@ public class TftpErrorSimulator {
 							+ "192.168.0.1: for ip address");
 					isValid = false;
 				}
+				scanner.close();
 			}
-			
+
 			requestReceive = new RequestReceiveThread();
 			requestReceive.start();
 		} catch (UnknownHostException e) {
@@ -482,6 +483,7 @@ public class TftpErrorSimulator {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
+							invalidSocket.close();
 						} else if (packetType == PacketType.ACK
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
@@ -490,6 +492,7 @@ public class TftpErrorSimulator {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
+							invalidSocket.close();
 						}
 						socket.send(dp);
 
@@ -520,7 +523,6 @@ public class TftpErrorSimulator {
 									.createFromDatagram(dp)).getBlockNumber() == blockNumber
 							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
-
 
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
@@ -765,7 +767,7 @@ public class TftpErrorSimulator {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
-
+							invalidSocket.close();
 						} else if (packetType == PacketType.ACK
 								&& TftpPacket.createFromDatagram(dp) instanceof TftpAckPacket
 								&& ((TftpAckPacket) TftpPacket
@@ -774,6 +776,7 @@ public class TftpErrorSimulator {
 							DatagramSocket invalidSocket = new DatagramSocket();
 							invalidSocket.setSoTimeout(timeoutMs);
 							invalidSocket.send((dp));
+							invalidSocket.close();
 						}
 						socket.send(dp);
 
@@ -791,8 +794,6 @@ public class TftpErrorSimulator {
 									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
 
-				
-
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
 							&& packetType == PacketType.DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
@@ -807,8 +808,6 @@ public class TftpErrorSimulator {
 									.createFromDatagram(dp)).getBlockNumber() == blockNumber
 							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
-
-						
 
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
@@ -1149,6 +1148,7 @@ public class TftpErrorSimulator {
 			}
 
 		}
+		scanner2.close();
 		return blkNum;
 	}
 }
