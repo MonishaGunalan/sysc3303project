@@ -17,7 +17,7 @@ import sysc3303.project.common.TftpPacket;
 import sysc3303.project.common.TftpRequestPacket;
 
 public class TftpClient {
-	private static int DEFAULT_REQUEST_PORT = 6900;
+	private static int DEFAULT_REQUEST_PORT = 68;
 	private String publicFolder = System.getProperty("user.dir")
 			+ "/client_files/";
 	InetAddress serverAddress;
@@ -112,7 +112,12 @@ public class TftpClient {
 		System.out
 				.println("    connect ip|hostname: set the server IP or hostname (eg. connect 192.168.1.4)");
 		System.out
+		.println("    connect ip|hostname:portnumber: set the server IP or hostname and the port number (eg. connect 192.168.1.4:69)");
+		System.out
 				.println("    pwd: prints out the directory for file transfers");
+		System.out
+		.println("   show connection: shows the current connection information: ip address and port number");
+		
 	}
 
 	public void setServer(InetAddress serverAddress, int serverRequestPort) {

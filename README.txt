@@ -29,11 +29,12 @@ Java Source Files:
 Server
 ======
 Run to start the server. Start server first.
-Commands: help, stop, pwd,chdir, defaultdir
+Commands: help, stop, pwd, chdir, defaultdir
 
 Error Simulator
 ===============
 Run to start error simulator. Start error simulator before client.
+At the prompt " connect to ", enter the ip address or the command 'localhost' to connect to the localhost
 choose the error mode to simulate an error before running the client(default mode is normal mode)
 Commands: help(lists the available error modes),
 	   stop(stop the error simulator (when current transfers finish))
@@ -45,7 +46,9 @@ Commands: help(lists the available error modes),
 Client
 ======
 Run after server and error simulator are started.
-Commands: read <<filename>>, write <<filename>>, help, close
+Commands: read <<filename>>, write <<filename>>, help, close, stop, 
+		  get <<filename>>, send<<filename>>, connect <<ip or hostname>>,  
+		  connect <<ip|hostname:portnumber>>, show connection
 
 
 Diagrams:
@@ -79,15 +82,13 @@ diagram Error6.JPG
 Files for the client are stored in "client_files", 
 bat.txt
 bond.txt
-
 clientimage.jpeg
-.hide.txt (hidden file to test access violation)
-
 
 
 files for the server are stored in "server_files"
 soccer.txt
-.hidden.txt (hidden file to test access violation)
+cgpa.jpg
+
 
 
 
@@ -119,10 +120,9 @@ Test case for Error code 02 (Access violation )
 --------------------------------------------------------------
 
 Try to read hidden files on server:
-	
- 	send read request to read the hidden file(read .hidden.txt).
-	
-	or send write request to write the hidden file (write .hide.txt)
+	Create a hidden file by creating a file with a '.' in front.(example: .hide.txt)
+ 	send read request to read the hidden file(Example: read .hidden.txt).	
+	or send write request to write the hidden file (Example: write .hide.txt)
 	Access violation error code will be returned
 
 

@@ -94,8 +94,8 @@ public class TftpErrorSimulator {
 	}
 
 	protected InetAddress serverAddress;
-	protected int serverRequestPort = 6900;
-	protected int clientRequestPort = 6800;
+	protected int serverRequestPort = 69;
+	protected int clientRequestPort = 68;
 	protected int threadCount = 0;
 	protected boolean stopping = false;
 	protected RequestReceiveThread requestReceive;
@@ -111,8 +111,23 @@ public class TftpErrorSimulator {
 	 */
 	public TftpErrorSimulator() {
 		try {
-			serverAddress = InetAddress.getLocalHost();
-			// serverAddress = InetAddress.getByName("134.117.59.119");
+			boolean isValid = false;
+			while (!isValid) {
+				isValid = true;
+				System.out.print("Connect to:");
+				Scanner scanner = new Scanner(System.in);
+				String command = scanner.nextLine().toLowerCase();
+				if (command.equalsIgnoreCase("localhost"))
+					serverAddress = InetAddress.getLocalHost();
+				else if (Character.isDigit(command.charAt(0)))
+					serverAddress = InetAddress.getByName(command);
+				else {
+					System.out.println("localhost: for localhost\n"
+							+ "192.168.0.1: for ip address");
+					isValid = false;
+				}
+			}
+			
 			requestReceive = new RequestReceiveThread();
 			requestReceive.start();
 		} catch (UnknownHostException e) {
@@ -491,7 +506,6 @@ public class TftpErrorSimulator {
 									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
 
-						// *******************/
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
 							&& packetType == PacketType.DATA
 							&& TftpPacket.createFromDatagram(dp) instanceof TftpDataPacket
@@ -507,7 +521,6 @@ public class TftpErrorSimulator {
 							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
 
-						// *******************/
 
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
@@ -778,7 +791,7 @@ public class TftpErrorSimulator {
 									.createFromDatagram(dp)).getBlockNumber() == blockNumber) {
 						socket.send(changeOpcode(dp));
 
-						// ************************
+				
 
 					} else if (errorCommand == ErrorCommands.ERROR_CHANGE_BLOCK_NUM
 							&& packetType == PacketType.DATA
@@ -795,7 +808,7 @@ public class TftpErrorSimulator {
 							&& !isChanged) {
 						socket.send(changeBlockNum(dp));
 
-						// ******************************
+						
 
 					} else if (errorCommand == ErrorCommands.ERROR_LOSE_PACKET) {
 						if (packetType == PacketType.DATA
@@ -1016,8 +1029,8 @@ public class TftpErrorSimulator {
 	// Error - Remove the trailing 0th byte after the mode in the request packet
 	private DatagramPacket removeModeTrailingByte(DatagramPacket packet) {
 
-		return new DatagramPacket(packet.getData(), packet.getLength()-1, packet.getAddress(),
-				packet.getPort());
+		return new DatagramPacket(packet.getData(), packet.getLength() - 1,
+				packet.getAddress(), packet.getPort());
 	}
 
 	// Error - Mod the trailing 0th byte after the file name in the request
@@ -1027,10 +1040,10 @@ public class TftpErrorSimulator {
 
 		// find the index of the 0th byte after filename
 		int i = 1;
-		
+
 		while (data[++i] != 0 && i < packet.getLength())
 			;
-		data[i] = 65;		
+		data[i] = 65;
 		return new DatagramPacket(data, data.length, packet.getAddress(),
 				packet.getPort());
 	}
@@ -1041,7 +1054,7 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
 		int i = 1;
-		while (data[++i] != 0 && i <  packet.getLength())
+		while (data[++i] != 0 && i < packet.getLength())
 			;
 		byte[] invalidMode = ("abc").getBytes();
 		i++;
@@ -1057,7 +1070,7 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
 		int i = 1;
-		while (data[++i] != 0 && i <  packet.getLength())
+		while (data[++i] != 0 && i < packet.getLength())
 			;
 		byte[] modData = new byte[data.length - (i - 2)];
 		// copy the op code
@@ -1128,11 +1141,11 @@ public class TftpErrorSimulator {
 					System.out
 							.println("Invalid command: The block Number should be between 1 and 65535(inclusive)");
 				}
-			}else{
+			} else {
 				scanner2.nextLine();
 				System.out
-				.println("Invalid command: The block Number should be an Integer between 1 and 65535(inclusive)");
-				
+						.println("Invalid command: The block Number should be an Integer between 1 and 65535(inclusive)");
+
 			}
 
 		}
