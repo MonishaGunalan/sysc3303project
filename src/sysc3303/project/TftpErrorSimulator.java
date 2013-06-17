@@ -1015,12 +1015,7 @@ public class TftpErrorSimulator {
 
 	// Error - Remove the trailing 0th byte after the mode in the request packet
 	private DatagramPacket removeModeTrailingByte(DatagramPacket packet) {
-		byte[] data = packet.getData();
-		int i = 1;
-		while (data[++i] != 0 && i < data.length)
-			;
-		data[i += 6] = (byte) 0xFF;
-		return new DatagramPacket(data, data.length, packet.getAddress(),
+		return new DatagramPacket(packet.getData(), packet.getLength()-1, packet.getAddress(),
 				packet.getPort());
 	}
 
@@ -1028,6 +1023,7 @@ public class TftpErrorSimulator {
 	// packet
 	private DatagramPacket modifyFileNameTrailingByte(DatagramPacket packet) {
 		byte[] data = packet.getData();
+
 		// find the index of the 0th byte after filename
 		int i = 1;
 		while (data[++i] != 0 && i < data.length)

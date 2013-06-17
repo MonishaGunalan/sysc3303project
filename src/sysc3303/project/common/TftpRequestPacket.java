@@ -132,13 +132,19 @@ public class TftpRequestPacket extends TftpPacket {
 		} else if (modeStr.equals("octet")) {
 			mode = Mode.OCTET;
 		} else {
-			throw new IllegalArgumentException("Invalid transfer mode: "
-					+ modeStr);
+			String errMsg;
+			if (modeStr == null || modeStr.isEmpty()) {
+				errMsg = "Missing transfer mode";
+			} else {
+				errMsg = "Invalid transfer mode: " + modeStr;
+			}
+			throw new IllegalArgumentException(errMsg);
 		}
 
 		// Check for the terminating 0 and make sure there is no more data
 		if (packetData[packetLength - 1] != 0) {
-			throw new IllegalArgumentException("Trailing 0 not found after mode");
+			throw new IllegalArgumentException(
+					"Trailing 0 not found after mode");
 		}
 
 		// Create a RequestPacket
