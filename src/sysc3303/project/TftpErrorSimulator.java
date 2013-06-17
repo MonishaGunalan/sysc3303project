@@ -1017,7 +1017,7 @@ public class TftpErrorSimulator {
 	private DatagramPacket removeModeTrailingByte(DatagramPacket packet) {
 		byte[] data = packet.getData();
 		int i = 1;
-		while (data[++i] != 0 && i < data.length)
+		while (data[++i] != 0 && i < packet.getLength())
 			;
 		data[i += 6] = (byte) 0xFF;
 		return new DatagramPacket(data, data.length, packet.getAddress(),
@@ -1030,9 +1030,10 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
 		int i = 1;
-		while (data[++i] != 0 && i < data.length)
+		
+		while (data[++i] != 0 && i < packet.getLength())
 			;
-		data[i] = 2;
+		data[i] = 65;		
 		return new DatagramPacket(data, data.length, packet.getAddress(),
 				packet.getPort());
 	}
@@ -1043,7 +1044,7 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
 		int i = 1;
-		while (data[++i] != 0 && i < data.length)
+		while (data[++i] != 0 && i <  packet.getLength())
 			;
 		byte[] invalidMode = ("abc").getBytes();
 		i++;
@@ -1059,7 +1060,7 @@ public class TftpErrorSimulator {
 		byte[] data = packet.getData();
 		// find the index of the 0th byte after filename
 		int i = 1;
-		while (data[++i] != 0 && i < data.length)
+		while (data[++i] != 0 && i <  packet.getLength())
 			;
 		byte[] modData = new byte[data.length - (i - 2)];
 		// copy the op code
