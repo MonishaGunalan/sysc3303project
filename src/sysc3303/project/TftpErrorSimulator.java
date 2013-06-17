@@ -126,7 +126,6 @@ public class TftpErrorSimulator {
 							+ "192.168.0.1: for ip address");
 					isValid = false;
 				}
-				scanner.close();
 			}
 
 			requestReceive = new RequestReceiveThread();
@@ -1148,7 +1147,6 @@ public class TftpErrorSimulator {
 			}
 
 		}
-		scanner2.close();
 		return blkNum;
 	}
 }
